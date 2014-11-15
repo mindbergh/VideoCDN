@@ -5,12 +5,19 @@
  */
 
 #include <stdio.h>
-#include "csapp.h"
-#include "cache.h"
+#include <sys/socket.h>
+#include <unistd.h>
+#include <string.h>
+#include "pool.h"
 #include "mio.h"
 
-#define CACHE_ENABLE   1
-#define VERBOSE        0
+
+#define BUF_SIZE 8192 /* Initial buff size */
+#define MAX_SIZE_HEADER 8192 /* Max length of size info for the incomming msg */
+#define ARG_NUMBER 2 /* The number of argument lisod takes*/
+#define LISTENQ 1024 /* second argument to listen() */
+#define VERBOSE 1 /* Whether to print out debug infomations */
+
 
 /* You won't lose style points for including these long lines in your code */
 static const char *user_agent_hdr = "User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:10.0.3) Gecko/20120305 Firefox/10.0.3\r\n";
@@ -35,46 +42,96 @@ void sigpipe_handler(int sig) {
 }
 
 int main(int argc, char **argv) {
-    int listenfd, *connfdp, port;
-    socklen_t clientlen = sizeof(struct sockaddr_in);
-    struct sockaddr_in clientaddr;
-    pthread_t tid; 
+    int listen_sock, client_sock;
+    socklen_t cli_size;
+    struct sockaddr cli_addr;
+    sigset_t mask, old_mask;
+    
+    int http_port; /* The port for the HTTP server to listen on */
+    char *log_file; /* File to send log messages to (debug, info, error) */
+
+    /* all activate connection pool */
+    pool_t pool;
+
+    if (argc != ARG_NUMBER + 1) {
+        usage();
+    }
 
     if (argc != 2) {
 		fprintf(stderr, "usage: %s <port>\n", argv[0]);
 		exit(0);
     }
     port = atoi(argv[1]);
+    
+     /* Parse arguments */
+    http_port = atoi(argv[1]);
+    //log_file = argv[3];
 
+    /* deal with the case of writing into broken pipe */
+    sigemptyset(&mask);
+    sigemptyset(&old_mask);
+    sigaddset(&mask, SIGPIPE);
+    sigprocmask(SIG_BLOCK, &mask, &old_mask);
 
-    Signal(SIGPIPE, sigpipe_handler);
-    cache_init();
+    listen_sock = open_listen_socket(http_port);
+    init_pool(listen_sock, &pool);
+    memset(&cli_addr, 0, sizeof(struct sockaddr));
+    memset(&cli_size, 0, sizeof(socklen_t));
+    fprintf(stdout, "----- Proxy Start -----\n");
+    
+     while (1) {
+        pool.ready_read = pool.read_set;
+        pool.ready_write = pool.write_set;
+        
+        if (VERBOSE)
+            printf("New select\n");
+        
+        pool.nready = select(pool.maxfd + 1, &pool.ready_read,
+            &pool.ready_write, NULL, NULL);
+        
+        if (VERBOSE)
+            printf("nready = %d\n", pool.nready);
 
-    listenfd = Open_listenfd(port);
-    while (1) {
-		connfdp = Malloc(sizeof(int));
-		*connfdp = Accept(listenfd, (SA *) &clientaddr, &clientlen);
-		Pthread_create(&tid, NULL, thread, connfdp);
+        if (pool.nready == -1) {
+            /* Something wrong with select */
+            if (VERBOSE)
+                printf("Select error on %s\n", strerror(errno));
+            clean_state(&pool, listen_sock);
+        }
+        if (FD_ISSET(listen_sock, &pool.ready_read) &&
+            pool.cur_conn <= FD_SETSIZE) {
+        
+            if ((client_sock = accept(listen_sock, 
+                (struct sockaddr *) &cli_addr,
+                &cli_size)) == -1) {
+                close(listen_sock);
+                fprintf(stderr, "Error accepting connection.\n");
+                continue;
+            }
+            if (VERBOSE)
+                printf("New client %d accepted\n", client_sock);
+            fcntl(client_sock, F_SETFL, O_NONBLOCK);
+            add_client(client_sock, &pool);
+        }
+        serve_clients(&pool);
     }
-
-    return 0;
+    close_socket(listen_sock);
+    return EXIT_SUCCESS;
 }
 
 
-/* thread routine */
-void *thread(void *vargp) 
-{  
-    int connfd = *((int *)vargp);
-    printf("New thread created! fd = %d >>>>>>>>>>>>>>>>>>\n", connfd);
-    Pthread_detach(pthread_self()); 
-    Free(vargp);
-    Signal(SIGPIPE, sigpipe_handler);
-    proxy(connfd);
-    Close(connfd);
-    printf("Thread is closing! fd = %d <<<<<<<<<<<<<<<<<<<<<<<<\n", connfd);
-    return NULL;
+void serve_clients( pool_t* pool) {
+    int i = 0;
+    int max_ready = pool->nready;
+    int* client_socket = pool->client_sock;
+
+    for(i = 1; i <= pool->maxi && max_ready > 0; i++) {
+        if(FD_ISSET(client_socket[i],pool->read_read)) {
+            proxy(client_socket[i]);
+            max_ready--;
+        }
+    }
 }
-/* $end echoservertmain */
 
 /*
  * proxy - handle one proxy request/response transaction

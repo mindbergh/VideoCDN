@@ -35,6 +35,7 @@ int parse_uri(char *uri, char *host, int *port, char *path);
 void clienterror(int fd, char *cause, char *errnum, 
 		 char *shortmsg, char *longmsg);
 void read_requesthdrs(mio_t *rp);
+void usage();
 
 void sigpipe_handler(int sig) {
     printf("SIGPIPE handled\n");
@@ -53,14 +54,10 @@ int main(int argc, char **argv) {
     /* all activate connection pool */
     pool_t pool;
 
-    if (argc != ARG_NUMBER + 1) {
+    if (argc != 7 || argc != 8) {
         usage();
     }
 
-    if (argc != 2) {
-		fprintf(stderr, "usage: %s <port>\n", argv[0]);
-		exit(0);
-    }
     port = atoi(argv[1]);
     
      /* Parse arguments */
@@ -411,3 +408,9 @@ void clienterror(int fd, char *cause, char *errnum,
     Mio_writen(fd, body, strlen(body));
 }
 /* $end clienterror */
+
+
+void usage() {
+    fprintf(stderr, "usage: %s <log> <alpha> <listen-port> <fake-ip> <dns-ip> <dns-port> [<www-ip>]\n", argv[0]);
+    exit(0);
+}

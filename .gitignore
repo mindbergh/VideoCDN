@@ -22,12 +22,7 @@
 *.x86_64
 *.hex
 *.sh
-peer
-make-chunks
-client
-server
-test_debug
-test_input_buffer
+proxy
 
 
 # map

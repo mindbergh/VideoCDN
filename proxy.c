@@ -52,7 +52,8 @@ int main(int argc, char **argv) {
     /* all activate connection pool */
     pool_t pool;
 
-    if (argc != 7 || argc != 8) {
+    if (argc != 7 && argc != 8) {
+        DPRINTF("%d",argc);
         usage();
         exit(EXIT_FAILURE);
     }
@@ -80,20 +81,23 @@ int main(int argc, char **argv) {
 
     init_mydns(dns_ip, dns_port);
 
+
     listen_sock = open_listen_socket(lis_port);
     if (listen_sock < 0) {
         DPRINTF("open_listen_socket: error!");
         exit(EXIT_FAILURE);
     }
+    init_pool(listen_sock, &pool);
+    /*
     pool.serv_sock = open_server_socket(fake_ip, www_ip);
     if (pool.serv_sock < 0) {
-        DPRINTF("open_server_socket: error!");
+        DPRINTF("open_server_socket: error!\n");
         exit(EXIT_FAILURE);
-    }
+    }*/
 
     
 
-    init_pool(listen_sock, &pool);
+    
 
     memset(&cli_addr, 0, sizeof(struct sockaddr));
     memset(&cli_size, 0, sizeof(socklen_t));
@@ -153,6 +157,7 @@ void serve_clients(pool_t* p) {
         conn_sock = conni->fd;
         if(FD_ISSET(conn_sock, &p->ready_read)) {
             proxy(conn_sock, serv_sock);
+            close_conn(p, i);
             p->nready--;
         }
     }
@@ -205,6 +210,8 @@ void proxy(int fd, int serv_fd)
         printf("path = \"%s\"\n", path);
     }
 
+    //exit(0);
+    serv_fd = open_server_socket("1.0.0.1", "4.0.0.1");
 	/* Forward request */
     sprintf(buf_internet, "GET %s HTTP/1.0\r\n", path);
     io_sendn(serv_fd, buf_internet, strlen(buf_internet));
@@ -217,14 +224,17 @@ void proxy(int fd, int serv_fd)
     io_sendn(serv_fd, pxy_connection_hdr, strlen(pxy_connection_hdr));
 
 	/* Forward respond */
+    //exit(0);
 
     while ((n = io_recvlineb(serv_fd, buf_internet, MAXLINE)) > 0) {
         sum += n;
 		io_sendn(fd, buf_internet, n);
 	}
+    close_socket(serv_fd);
 
     DPRINTF("Forward respond %zu bytes\n", sum);    
     DPRINTF("Proxy is exiting\n\n");
+    //exit(0);
 }
 /* $end proxyd */
 

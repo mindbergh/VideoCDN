@@ -81,7 +81,7 @@ int open_server_socket(char *fake_ip, char *www_ip) {
         return -1;
     }
 
-    fcntl(serverfd, F_SETFL, O_NONBLOCK);
+    //fcntl(serverfd, F_SETFL, O_NONBLOCK);
     
     memset(&fake_addr, '0', sizeof(fake_addr)); 
     fake_addr.sin_family = AF_INET;
@@ -96,9 +96,9 @@ int open_server_socket(char *fake_ip, char *www_ip) {
     if (www_ip == NULL) {
         // server ip is not specified, ask DNS
         rc = resolve(VIDEO_SERVER_ADDR, VIDEO_SERVER_PORT, NULL, &result);
-        if (rc != 0) {
+        if (rc < 0) {
             // handle error
-            DPRINTF("Resolve error!");
+            DPRINTF("Resolve error!\n");
             return -1;
         }
         // connect to address in result
@@ -111,9 +111,9 @@ int open_server_socket(char *fake_ip, char *www_ip) {
         serv_addr.sin_port = htons(8080);
         rc = connect(serverfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
     }
-    if (rc != 0) {
+    if (rc < 0) {
         // handle error
-        DPRINTF("Connect error!");
+        DPRINTF("Connect error!\n");
         return -1;
     }
     /* Clean up */
@@ -205,4 +205,23 @@ void clean_state(pool_t *p, int listen_sock) {
     p->maxi = -1;
     p->maxfd = listen_sock;
     p->cur_conn = 0;
+}
+
+/** @brief Close given connection
+ *  @param p the Pool struct
+ *         i the ith connection in the pool
+ *  @return Void
+ */
+void close_conn(pool_t *p, int i) {
+    //if (p->buf[i] == NULL)
+        //return;
+    int conn_sock = p->conn[i]->fd;
+    if (close_socket(conn_sock)) {
+        fprintf(stderr, "Error closing client socket.\n");                        
+    }
+    p->cur_conn--;
+    free_buf(p, p->conn[i]);
+    FD_CLR(conn_sock, &p->read_set);
+    FD_CLR(conn_sock, &p->write_set);
+    p->conn[i] = NULL;
 }

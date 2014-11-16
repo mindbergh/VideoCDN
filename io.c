@@ -16,7 +16,7 @@
  *	@return 0 on EOF
  *  @return the number of bytes sent
  */
-ssize_t io_sendn(int fd, const char *ubuf, size_t n) {	
+ssize_t io_sendn(int fd, const char *ubuf, size_t n) {
     size_t nleft = n;
     ssize_t nsend;
     const char *buf = ubuf;

@@ -1,15 +1,15 @@
 ################################################################################
-# Makefile #
-# #
-# Description: This file contains the make rules for proxy #
-# #
-# Authors: Yao Zhou <yaozhou@cs.cmu.edu>, #
-# #
+# Makefile  																   #
+#                                 											   #
+# Description: This file contains the make rules for proxy                     #
+#                                                                              #
+# Authors: Ming Fang <mingf@cs.cmu.edu>                                        #
+#          Yao Zhou <yaozhou@cs.cmu.edu>                                       #
+# 																			   #
 ################################################################################
 CFLAGS = -Wall -g
 CC = gcc
-LDFLAGS = -lssl
-objects = pool.h proxy.o
+objects = pool.o io.o mydns.o proxy.o
 
 default: proxy
 
@@ -18,8 +18,10 @@ default: proxy
 proxy: $(objects)
 		$(CC) -o $@ $^ $(LDFLAGS)
 
-proxy.o: proxy.c pool.c
-pool.o: pool.c
+proxy.o: proxy.c pool.h mydns.h debug.h io.h
+pool.o: pool.c pool.h
+io.o: io.c io.h
+mydns.o: mydns.c mydns.h
 
 %.o: %.c
 		$(CC) -c $(CFLAGS) -o $@ $<

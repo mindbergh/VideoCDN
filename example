@@ -1,0 +1,59 @@
+Remote Address:4.0.0.1:8080
+Request URL:http://4.0.0.1:8080/vod/big_buck_bunny.f4m
+Request Method:GET
+Status Code:200 OK
+
+Request Headersview parsed
+GET /vod/big_buck_bunny.f4m HTTP/1.1
+
+Host: 4.0.0.1:8080
+Connection: keep-alive
+Pragma: no-cache
+Cache-Control: no-cache
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/38.0.2125.122 Safari/537.36
+Accept: */*
+Referer: http://4.0.0.1:8080/
+Accept-Encoding: gzip,deflate,sdch
+Accept-Language: en-US,en;q=0.8
+
+
+Response Headersview parsed
+HTTP/1.1 200 OK
+Date: Sat, 15 Nov 2014 22:17:09 GMT
+Server: Apache/2.2.29 (Unix)
+Content-Length: 7015
+Last-Modified: Fri, 08 Nov 2013 17:45:33 GMT
+Keep-Alive: timeout=5, max=97
+Connection: Keep-Alive
+Content-Type: text/xml
+
+
+
+
+Remote Address:4.0.0.1:8080
+Request URL:http://4.0.0.1:8080/vod/1000Seg1-Frag1
+Request Method:GET
+Status Code:200 OK
+
+Request Headersview parsed
+GET /vod/1000Seg1-Frag1 HTTP/1.1
+
+Host: 4.0.0.1:8080
+Connection: keep-alive
+Pragma: no-cache
+Cache-Control: no-cache
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/38.0.2125.122 Safari/537.36
+Accept: */*
+Referer: http://4.0.0.1:8080/
+Accept-Encoding: gzip,deflate,sdch
+Accept-Language: en-US,en;q=0.8
+
+Response Headersview parsed
+HTTP/1.1 200 OK
+Date: Sat, 15 Nov 2014 22:17:09 GMT
+Server: Apache/2.2.29 (Unix)
+Content-Length: 161417
+Last-Modified: Fri, 08 Nov 2013 17:45:33 GMT
+Keep-Alive: timeout=5, max=96
+Connection: Keep-Alive
+Content-Type: video/f4f

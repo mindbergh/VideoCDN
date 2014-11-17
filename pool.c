@@ -139,10 +139,11 @@ void add_client(int conn_sock, pool_t *p) {
         if (p->conn[i] == NULL) {
             p->conn[i] = (conn_t *)malloc(sizeof(conn_t));
             conni = p->conn[i];
-            conni->buf = (char *)malloc(BUF_SIZE);
+            //conni->buf = (char *)malloc(BUF_SIZE);
             conni->cur_size = 0;
             conni->size = BUF_SIZE;
             conni->fd = conn_sock;
+            conni->thruput = 0;
             FD_SET(conn_sock, &p->read_set);
 
             if (conn_sock > p->maxfd)
@@ -165,7 +166,7 @@ void add_client(int conn_sock, pool_t *p) {
  *  @return Void
  */
 void free_buf(pool_t *p, conn_t *conni) {
-    free(conni->buf);
+    //free(conni->buf);
     free(conni);
 }
 

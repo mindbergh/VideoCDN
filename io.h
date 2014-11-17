@@ -12,7 +12,7 @@
 ssize_t io_sendn(int fd, const char *ubuf, size_t n);
 ssize_t io_recvn(int fd, char *buf, size_t n);
 ssize_t io_recvlineb(int fd, void *usrbuf, size_t maxlen);
-int endsWith (char* base, char* str);
+
 
 
 

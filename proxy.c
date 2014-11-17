@@ -10,9 +10,10 @@
 #include <string.h>
 #include <signal.h>
 #include <ctype.h>
+#include <sys/time.h>
 #include "pool.h"
 #include "io.h"
-
+#include "media.h"
 
 
 
@@ -26,7 +27,7 @@ static const char *pxy_connection_hdr = "Proxy-Connection: close\r\n\r\n";
 
 
 /* Function prototype */
-void proxy(int, int, pool_t *);
+void proxy(pool_t *, int);
 int parse_uri(char *uri, char *host, int *port, char *path);
 void clienterror(int fd, char *cause, char *errnum, 
 		 char *shortmsg, char *longmsg);
@@ -62,7 +63,7 @@ int main(int argc, char **argv) {
     
      /* Parse arguments */
     log_file = argv[1];
-    alpha = atof(argv[2]);
+    pool.alpha = atof(argv[2]);
     lis_port = atoi(argv[3]);
     fake_ip = argv[4];
     dns_ip = argv[5];
@@ -156,8 +157,8 @@ void serve_clients(pool_t* p) {
         conni = p->conn[i];
         conn_sock = conni->fd;
         if(FD_ISSET(conn_sock, &p->ready_read)) {
-            proxy(conn_sock, serv_sock, p);
-            close_conn(p, i);
+            proxy(p, i);
+            //close_conn(p, i);
             p->nready--;
         }
     }
@@ -167,7 +168,7 @@ void serve_clients(pool_t* p) {
  * proxy - handle one proxy request/response transaction
  */
 /* $begin proxy */
-void proxy(int fd, int serv_fd, pool_t *p) 
+void proxy(pool_t *p, int i) 
 {
     char buf[MAXLINE], method[MAXLINE], uri[MAXLINE], version[MAXLINE];
     char buf_internet[MAXLINE];
@@ -175,8 +176,10 @@ void proxy(int fd, int serv_fd, pool_t *p)
     int port;
     size_t n;
     size_t sum = 0;
-
-
+    conn_t *conni = p->conn[i];
+    int fd = conni->fd;
+    int serv_fd;
+    struct timeval start;
   
     /* Read request line and headers */
     io_recvlineb(fd, buf, MAXLINE);
@@ -203,8 +206,10 @@ void proxy(int fd, int serv_fd, pool_t *p)
     }
 
     if (endsWith(path, ".f4m")) {
-        strcpy(path + strlen(path) - 4, "_nolist.f4m");
+        //strcpy(path + strlen(path) - 4, "_nolist.f4m");
+        
     }
+    fprintf(stderr, "Curr Thruput = %u\n", conni->thruput); 
     
 	if (VERBOSE) {
         printf("uri = \"%s\"\n", uri);
@@ -228,16 +233,18 @@ void proxy(int fd, int serv_fd, pool_t *p)
 
 	/* Forward respond */
     //exit(0);
-
+    gettimeofday(&start, NULL);
     while ((n = io_recvn(serv_fd, buf_internet, MAXLINE)) > 0) {
-        sum += n;
+        sum += n; /*
         if (VERBOSE) {
             fprintf(stderr, "This line %zu:\n", n);
             write(STDOUT_FILENO, buf_internet, n);
             fprintf(stderr, "\n");
-        }
+        }*/
 		io_sendn(fd, buf_internet, n);
 	}
+    update_thruput(sum, &start, p, i);
+
     close_socket(serv_fd);
 
     DPRINTF("Forward respond %zu bytes\n", sum);    

@@ -102,13 +102,3 @@ ssize_t io_recvlineb(int fd, void *usrbuf, size_t maxlen) {
 }
 
 
-
-
-/** detecting whether base is ends with str
- *  @return 1 on ends with; 0 on does not end with
- */
-int endsWith(char* base, char* str) {
-    int blen = strlen(base);
-    int slen = strlen(str);
-    return (blen >= slen) && (0 == strcmp(base + blen - slen, str));
-}

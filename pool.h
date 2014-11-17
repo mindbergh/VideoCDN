@@ -23,15 +23,17 @@
  *
  */
 typedef struct conn_s {
-    char *buf;    /* actual buf, dynamically allocated */
+    
     int fd;        /* client fd */
     unsigned int cur_size; /* current used size of this buf */
     unsigned int size;     /* whole size of this buf */
+    unsigned int thruput;
 } conn_t;
 
 typedef struct pool_s {
 	int maxfd;
 	int serv_sock;
+	float alpha;
 	fd_set read_set; /* The set of fd Liso is looking at before recving */
 	fd_set ready_read; /* The set of fd that is ready to recv */
 	fd_set write_set; /* The set of fd Liso is looking at before sending*/

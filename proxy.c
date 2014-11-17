@@ -20,13 +20,13 @@
 /* You won't lose style points for including these long lines in your code */
 static const char *user_agent_hdr = "User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:10.0.3) Gecko/20120305 Firefox/10.0.3\r\n";
 static const char *accept_hdr = "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n";
-static const char *accept_encoding_hdr = "Accept-Encoding: gzip, deflate\r\n";
+static const char *accept_encoding_hdr = "Accept-Encoding: gzip,deflate,sdch\r\n";
 static const char *connection_hdr = "Connection: close\r\n";
 static const char *pxy_connection_hdr = "Proxy-Connection: close\r\n\r\n";
 
 
 /* Function prototype */
-void proxy(int, int);
+void proxy(int, int, pool_t *);
 int parse_uri(char *uri, char *host, int *port, char *path);
 void clienterror(int fd, char *cause, char *errnum, 
 		 char *shortmsg, char *longmsg);
@@ -156,7 +156,7 @@ void serve_clients(pool_t* p) {
         conni = p->conn[i];
         conn_sock = conni->fd;
         if(FD_ISSET(conn_sock, &p->ready_read)) {
-            proxy(conn_sock, serv_sock);
+            proxy(conn_sock, serv_sock, p);
             close_conn(p, i);
             p->nready--;
         }
@@ -167,7 +167,7 @@ void serve_clients(pool_t* p) {
  * proxy - handle one proxy request/response transaction
  */
 /* $begin proxy */
-void proxy(int fd, int serv_fd) 
+void proxy(int fd, int serv_fd, pool_t *p) 
 {
     char buf[MAXLINE], method[MAXLINE], uri[MAXLINE], version[MAXLINE];
     char buf_internet[MAXLINE];
@@ -202,6 +202,9 @@ void proxy(int fd, int serv_fd)
 		return;
     }
 
+    if (endsWith(path, ".f4m")) {
+        strcpy(path + strlen(path) - 4, "_nolist.f4m");
+    }
     
 	if (VERBOSE) {
         printf("uri = \"%s\"\n", uri);
@@ -213,7 +216,7 @@ void proxy(int fd, int serv_fd)
     //exit(0);
     serv_fd = open_server_socket("1.0.0.1", "4.0.0.1");
 	/* Forward request */
-    sprintf(buf_internet, "GET %s HTTP/1.0\r\n", path);
+    sprintf(buf_internet, "GET %s HTTP/1.1\r\n", path);
     io_sendn(serv_fd, buf_internet, strlen(buf_internet));
 	sprintf(buf_internet, "Host: %s\r\n", host);
     io_sendn(serv_fd, buf_internet, strlen(buf_internet));
@@ -226,8 +229,13 @@ void proxy(int fd, int serv_fd)
 	/* Forward respond */
     //exit(0);
 
-    while ((n = io_recvlineb(serv_fd, buf_internet, MAXLINE)) > 0) {
+    while ((n = io_recvn(serv_fd, buf_internet, MAXLINE)) > 0) {
         sum += n;
+        if (VERBOSE) {
+            fprintf(stderr, "This line %zu:\n", n);
+            write(STDOUT_FILENO, buf_internet, n);
+            fprintf(stderr, "\n");
+        }
 		io_sendn(fd, buf_internet, n);
 	}
     close_socket(serv_fd);
@@ -235,6 +243,7 @@ void proxy(int fd, int serv_fd)
     DPRINTF("Forward respond %zu bytes\n", sum);    
     DPRINTF("Proxy is exiting\n\n");
     //exit(0);
+    FD_CLR(fd, &p->read_set);
 }
 /* $end proxyd */
 

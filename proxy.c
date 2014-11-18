@@ -171,7 +171,7 @@ void proxy(pool_t *p, int i)
 {
     char buf[MAXLINE], method[MAXLINE], uri[MAXLINE], version[MAXLINE];
     char buf_internet[MAXLINE];
-    char host[MAXLINE], path[MAXLINE], path_nolist[MAXLINE];
+    char host[MAXLINE], path[MAXLINE], path_list[MAXLINE];
     int port;
     size_t n;
     size_t sum = 0;
@@ -222,16 +222,25 @@ void proxy(pool_t *p, int i)
 
     if (endsWith(path, ".f4m")) {
         flag = FLAG_LIST;
-        strcpy(path_nolist, path);
+        strcpy(path_list, path);
         strcpy(path + strlen(path) - 4, "_nolist.f4m");
 
         // to do, ask for listed f4m and get the options
-        serv_info = serv_add(&sa);
+        // 
+        if (!serv_get(&sa)) {
+            serv_info = serv_add(&sa);
+        }
     } else if (0) {
         // to do it asks for vedio
         flag = FLAG_VIDEO; // This is a chunk request
         serv_info = serv_get(&sa);
-        assert(serv_info->)
+        assert(serv_info != NULL)
+
+        if (serv_info->thruput != -1) {
+            // set the request bit rate = serv_info->thruput
+        } else {
+            // set the lowest bit rate
+        }
     }
     
     
@@ -267,11 +276,13 @@ void proxy(pool_t *p, int i)
         }*/
 		io_sendn(fd, buf_internet, n);
 	}
+    close_socket(serv_fd);
 
     if (flag == FLAG_VIDEO) {
         new_thruput = update_thruput(sum, &start, &sa);
     } else if (flag == FLAG_LIST) {
-        sprintf(buf_internet, "GET %s HTTP/1.1\r\n", path_nolist);
+        serv_fd = open_server_socket(p->fake_ip, p->www_ip);
+        sprintf(buf_internet, "GET %s HTTP/1.1\r\n", path_list);
         io_sendn(serv_fd, buf_internet, strlen(buf_internet));
         sprintf(buf_internet, "Host: %s\r\n", host);
         io_sendn(serv_fd, buf_internet, strlen(buf_internet));
@@ -288,7 +299,9 @@ void proxy(pool_t *p, int i)
                 write(STDOUT_FILENO, buf_internet, n);
                 fprintf(stderr, "\n");
             }*/
-            io_sendn(fd, buf_internet, n);
+            //io_sendn(fd, buf_internet, n);
+
+            // to do: parse xml
         }
 
     }

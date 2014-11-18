@@ -7,12 +7,27 @@
 #include "pool.h"
 
 
+#define MAX_TITLE_LENGTH  100
+
+
+extern serv_list_t *serv_list;
+
+
 //#define SOCK_ADDR_IN_PTR(sa)	((struct sockaddr_in *)(sa))
 //#define SOCK_ADDR_IN_ADDR(sa)	sa->sin_addr
+
+
+typedef struct movie_s {
+	char *title;
+	int *bitrates;
+	struct movies_s* next;
+} movie_t;
 
 typedef struct serv_list_s {
 	uint32_t addr;
 	int thruput;
+	// to do: add 
+	movie_t* movies;
 	struct serv_info_s *next;
 } serv_list_t;
 

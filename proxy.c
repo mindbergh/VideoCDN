@@ -16,7 +16,8 @@
 #include "media.h"
 
 
-
+#define FLAG_VIDEO    0
+#define FLAG_LIST     1
 
 /* You won't lose style points for including these long lines in your code */
 static const char *user_agent_hdr = "User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:10.0.3) Gecko/20120305 Firefox/10.0.3\r\n";
@@ -45,10 +46,7 @@ int main(int argc, char **argv) {
     int lis_port = 0; /* The port for the HTTP server to listen on */
     unsigned int dns_port = 0;
     char *log_file = NULL; /* File to send log messages to (debug, info, error) */
-    float alpha = 0;
-    char *fake_ip = NULL;
     char *dns_ip = NULL;
-    char *www_ip = NULL;
 
     /* all activate connection pool */
     pool_t pool;
@@ -65,11 +63,11 @@ int main(int argc, char **argv) {
     log_file = argv[1];
     pool.alpha = atof(argv[2]);
     lis_port = atoi(argv[3]);
-    fake_ip = argv[4];
+    pool.fake_ip = argv[4];
     dns_ip = argv[5];
     dns_port = atoi(argv[6]);
     if (argc == 8) {
-        www_ip = argv[7];
+        pool.www_ip = argv[7];
     }
 
     
@@ -80,7 +78,8 @@ int main(int argc, char **argv) {
     sigaddset(&mask, SIGPIPE);
     sigprocmask(SIG_BLOCK, &mask, &old_mask);
 
-    init_mydns(dns_ip, dns_port);
+    init_mydns(dns_ip, dns_port); // currently does nothing
+    init_serv_list();
 
 
     listen_sock = open_listen_socket(lis_port);
@@ -158,7 +157,7 @@ void serve_clients(pool_t* p) {
         conn_sock = conni->fd;
         if(FD_ISSET(conn_sock, &p->ready_read)) {
             proxy(p, i);
-            //close_conn(p, i);
+            close_conn(p, i);
             p->nready--;
         }
     }
@@ -172,7 +171,7 @@ void proxy(pool_t *p, int i)
 {
     char buf[MAXLINE], method[MAXLINE], uri[MAXLINE], version[MAXLINE];
     char buf_internet[MAXLINE];
-    char host[MAXLINE], path[MAXLINE];
+    char host[MAXLINE], path[MAXLINE], path_nolist[MAXLINE];
     int port;
     size_t n;
     size_t sum = 0;
@@ -180,7 +179,13 @@ void proxy(pool_t *p, int i)
     int fd = conni->fd;
     int serv_fd;
     struct timeval start;
-  
+    struct addrinfo *servinfo;
+    int lagv = -1;
+    int new_thruput;
+    serv_list_t *serv_info;
+
+
+
     /* Read request line and headers */
     io_recvlineb(fd, buf, MAXLINE);
 
@@ -205,11 +210,30 @@ void proxy(pool_t *p, int i)
 		return;
     }
 
-    if (endsWith(path, ".f4m")) {
-        //strcpy(path + strlen(path) - 4, "_nolist.f4m");
-        
+    if (p->www_ip) {
+        struct sockaddr_in sa;
+        serv_fd = open_server_socket(p->fake_ip, p->www_ip);
+        inet_pton(AF_INET, p->www_ip, &(sa.sin_addr));
+
+    } else {
+        // to do resolve DNS
+        resolve(host, port, NULL, &servinfo);
     }
-    fprintf(stderr, "Curr Thruput = %u\n", conni->thruput); 
+
+    if (endsWith(path, ".f4m")) {
+        flag = FLAG_LIST;
+        strcpy(path_nolist, path);
+        strcpy(path + strlen(path) - 4, "_nolist.f4m");
+
+        // to do, ask for listed f4m and get the options
+        serv_info = serv_add(&sa);
+    } else if (0) {
+        // to do it asks for vedio
+        flag = FLAG_VIDEO; // This is a chunk request
+        serv_info = serv_get(&sa);
+        assert(serv_info->)
+    }
+    
     
 	if (VERBOSE) {
         printf("uri = \"%s\"\n", uri);
@@ -219,7 +243,7 @@ void proxy(pool_t *p, int i)
     }
 
     //exit(0);
-    serv_fd = open_server_socket("1.0.0.1", "4.0.0.1");
+    
 	/* Forward request */
     sprintf(buf_internet, "GET %s HTTP/1.1\r\n", path);
     io_sendn(serv_fd, buf_internet, strlen(buf_internet));
@@ -243,7 +267,31 @@ void proxy(pool_t *p, int i)
         }*/
 		io_sendn(fd, buf_internet, n);
 	}
-    update_thruput(sum, &start, p, i);
+
+    if (flag == FLAG_VIDEO) {
+        new_thruput = update_thruput(sum, &start, &sa);
+    } else if (flag == FLAG_LIST) {
+        sprintf(buf_internet, "GET %s HTTP/1.1\r\n", path_nolist);
+        io_sendn(serv_fd, buf_internet, strlen(buf_internet));
+        sprintf(buf_internet, "Host: %s\r\n", host);
+        io_sendn(serv_fd, buf_internet, strlen(buf_internet));
+        io_sendn(serv_fd, user_agent_hdr, strlen(user_agent_hdr));
+        io_sendn(serv_fd, accept_hdr, strlen(accept_hdr));
+        io_sendn(serv_fd, accept_encoding_hdr, strlen(accept_encoding_hdr));
+        io_sendn(serv_fd, connection_hdr, strlen(connection_hdr));
+        io_sendn(serv_fd, pxy_connection_hdr, strlen(pxy_connection_hdr));
+
+        while ((n = io_recvn(serv_fd, buf_internet, MAXLINE)) > 0) {
+            sum += n; /*
+            if (VERBOSE) {
+                fprintf(stderr, "This line %zu:\n", n);
+                write(STDOUT_FILENO, buf_internet, n);
+                fprintf(stderr, "\n");
+            }*/
+            io_sendn(fd, buf_internet, n);
+        }
+
+    }
 
     close_socket(serv_fd);
 

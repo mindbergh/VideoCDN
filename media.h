@@ -7,9 +7,23 @@
 #include "pool.h"
 
 
+//#define SOCK_ADDR_IN_PTR(sa)	((struct sockaddr_in *)(sa))
+//#define SOCK_ADDR_IN_ADDR(sa)	sa->sin_addr
+
+typedef struct serv_list_s {
+	uint32_t addr;
+	int thruput;
+	struct serv_info_s *next;
+} serv_list_t;
+
+
 
 int endsWith (char* base, char* str);
-void update_thruput(size_t, struct timeval*, pool_t *, int);
+int update_thruput(size_t, struct timeval*, pool_t *, struct sockaddr_in*);
 
+void init_serv_list(void);
+void serv_add(sockaddr *);
+void serv_del(sockaddr *);
+serv_list_t* serv_get(sockaddr *);
 
 #endif

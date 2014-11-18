@@ -21,6 +21,9 @@ void init_pool(int listen_sock, pool_t *p) {
     p->maxfd = listen_sock;
     p->cur_conn = 0;
     p->serv_sock = -1;
+    p->fake_ip = NULL;
+    p->www_ip = NULL;
+    p->alpha = -1;
     FD_ZERO(&p->read_set);
     FD_ZERO(&p->write_set);
     FD_SET(listen_sock, &p->read_set);

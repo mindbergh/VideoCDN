@@ -282,6 +282,7 @@ void proxy(pool_t *p, int i)
         new_thruput = update_thruput(sum, &start, &sa);
     } else if (flag == FLAG_LIST) {
         serv_fd = open_server_socket(p->fake_ip, p->www_ip);
+        
         sprintf(buf_internet, "GET %s HTTP/1.1\r\n", path_list);
         io_sendn(serv_fd, buf_internet, strlen(buf_internet));
         sprintf(buf_internet, "Host: %s\r\n", host);

@@ -58,10 +58,10 @@ ssize_t io_recvn(int fd, char *buf, size_t n) {
 		res += nread;
 	}
 	if (nread == -1) {
-		if (errno == EAGAIN)
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
 			return res;
 		else {
-			DPRINTF("send error on %s\n", strerror(errno));
+			DPRINTF("recv error on %s\n", strerror(errno));
 			return -1;
 		}
 	}

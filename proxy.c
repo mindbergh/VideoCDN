@@ -23,12 +23,13 @@
 static const char *user_agent_hdr = "User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:10.0.3) Gecko/20120305 Firefox/10.0.3\r\n";
 static const char *accept_hdr = "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n";
 static const char *accept_encoding_hdr = "Accept-Encoding: gzip,deflate,sdch\r\n";
-static const char *connection_hdr = "Connection: close\r\n";
-static const char *pxy_connection_hdr = "Proxy-Connection: close\r\n\r\n";
+static const char *connection_hdr = "Connection: Keep-Alive\r\n";
+static const char *pxy_connection_hdr = "Proxy-Connection: Keep-Alive\r\n\r\n";
 
 
 /* Function prototype */
 void proxy(pool_t *, int);
+void server2client(pool_t,int);
 int parse_uri(char *uri, char *host, int *port, char *path);
 void clienterror(int fd, char *cause, char *errnum, 
 		 char *shortmsg, char *longmsg);
@@ -87,7 +88,7 @@ int main(int argc, char **argv) {
         DPRINTF("open_listen_socket: error!");
         exit(EXIT_FAILURE);
     }
-    init_pool(listen_sock, &pool);
+    init_pool(listen_sock, &pool, argv);
     /*
     pool.serv_sock = open_server_socket(fake_ip, www_ip);
     if (pool.serv_sock < 0) {
@@ -124,7 +125,7 @@ int main(int argc, char **argv) {
         }
         if (FD_ISSET(listen_sock, &pool.ready_read) &&
             pool.cur_conn <= FD_SETSIZE) {
-        
+            pool.nready--;
             if ((client_sock = accept(listen_sock, 
                                       (struct sockaddr *) &cli_addr,
                                       &cli_size)) == -1) {
@@ -137,7 +138,9 @@ int main(int argc, char **argv) {
             fcntl(client_sock, F_SETFL, O_NONBLOCK);
             add_client(client_sock, &pool);
         }
-        serve_clients(&pool);
+        if(pool.nready>0) {
+            serve_clients(&pool);
+        }
     }
     close_socket(listen_sock);
     return EXIT_SUCCESS;
@@ -156,12 +159,30 @@ void serve_clients(pool_t* p) {
         conni = p->conn[i];
         conn_sock = conni->fd;
         if(FD_ISSET(conn_sock, &p->ready_read)) {
-            proxy(p, i);
-            close_conn(p, i);
+            if (1) 
+                client2server(p, i);
+            else
+                server2client(p, i);
             p->nready--;
         }
     }
 }
+
+
+void server2client(p,i) {
+    while ((n = io_recvn(serv_fd, buf_internet, MAXLINE)) > 0) {
+    sum += n; /*
+    if (VERBOSE) {
+        fprintf(stderr, "This line %zu:\n", n);
+        write(STDOUT_FILENO, buf_internet, n);
+        fprintf(stderr, "\n");
+    }*/
+    //io_sendn(fd, buf_internet, n);
+
+    // to do: parse xml
+    }
+}
+
 
 /*
  * proxy - handle one proxy request/response transaction
@@ -173,6 +194,7 @@ void proxy(pool_t *p, int i)
     char buf_internet[MAXLINE];
     char host[MAXLINE], path[MAXLINE], path_list[MAXLINE];
     int port;
+    int flag;
     size_t n;
     size_t sum = 0;
     conn_t *conni = p->conn[i];
@@ -183,7 +205,7 @@ void proxy(pool_t *p, int i)
     int lagv = -1;
     int new_thruput;
     serv_list_t *serv_info;
-
+    struct sockaddr_in sa;
 
 
     /* Read request line and headers */
@@ -211,10 +233,8 @@ void proxy(pool_t *p, int i)
     }
 
     if (p->www_ip) {
-        struct sockaddr_in sa;
         serv_fd = open_server_socket(p->fake_ip, p->www_ip);
         inet_pton(AF_INET, p->www_ip, &(sa.sin_addr));
-
     } else {
         // to do resolve DNS
         resolve(host, port, NULL, &servinfo);
@@ -228,13 +248,13 @@ void proxy(pool_t *p, int i)
         // to do, ask for listed f4m and get the options
         // 
         if (!serv_get(&sa)) {
-            serv_info = serv_add(&sa);
+            serv_add(&sa);
         }
     } else if (0) {
         // to do it asks for vedio
         flag = FLAG_VIDEO; // This is a chunk request
         serv_info = serv_get(&sa);
-        assert(serv_info != NULL)
+        assert(serv_info != NULL);
 
         if (serv_info->thruput != -1) {
             // set the request bit rate = serv_info->thruput
@@ -254,6 +274,7 @@ void proxy(pool_t *p, int i)
     //exit(0);
     
 	/* Forward request */
+    modi_path(path,conni->thruput);
     sprintf(buf_internet, "GET %s HTTP/1.1\r\n", path);
     io_sendn(serv_fd, buf_internet, strlen(buf_internet));
 	sprintf(buf_internet, "Host: %s\r\n", host);
@@ -267,19 +288,24 @@ void proxy(pool_t *p, int i)
 	/* Forward respond */
     //exit(0);
     gettimeofday(&start, NULL);
-    while ((n = io_recvn(serv_fd, buf_internet, MAXLINE)) > 0) {
+    if((n = io_recvn(serv_fd, buf_internet, MAXLINE)) > 0) {
         sum += n; /*
         if (VERBOSE) {
             fprintf(stderr, "This line %zu:\n", n);
             write(STDOUT_FILENO, buf_internet, n);
             fprintf(stderr, "\n");
         }*/
-		io_sendn(fd, buf_internet, n);
+        fprintf(stderr, "recv looping fnished!!!\n");
+		if(io_sendn(fd, buf_internet, n) == -1) {
+            fprintf(stderr, "fail to send back to client!\n");
+            clean_state(p,fd);
+            return;
+        }
+        fprintf(stderr, "looping!!!\n");
 	}
-    close_socket(serv_fd);
-
+    fprintf(stderr, "finish transimit content!\n");
     if (flag == FLAG_VIDEO) {
-        new_thruput = update_thruput(sum, &start, &sa);
+        new_thruput = update_thruput(sum, &start, p, &sa);
     } else if (flag == FLAG_LIST) {
         serv_fd = open_server_socket(p->fake_ip, p->www_ip);
         
@@ -307,12 +333,9 @@ void proxy(pool_t *p, int i)
 
     }
 
-    close_socket(serv_fd);
-
     DPRINTF("Forward respond %zu bytes\n", sum);    
-    DPRINTF("Proxy is exiting\n\n");
-    //exit(0);
     FD_CLR(fd, &p->read_set);
+    FD_SET(fd, &p->read_set);
 }
 /* $end proxyd */
 

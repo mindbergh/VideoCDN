@@ -1,6 +1,6 @@
 #include "media.h"
 #include "debug.h"
-
+#include <string.h>
 
 serv_list_t *serv_list;
 
@@ -19,7 +19,7 @@ int endsWith(char* base, char* str) {
 
 
 
-int update_thruput(size_t sum, struct timeval* start, struct sockaddr_in *addr) {
+int update_thruput(size_t sum, struct timeval* start, pool_t* p, struct sockaddr_in *addr) {
 	int curr_thruput;
 	double elapsed = get_time_diff(start);
 	double new_thruput = sum / elapsed;
@@ -28,11 +28,11 @@ int update_thruput(size_t sum, struct timeval* start, struct sockaddr_in *addr) 
 
 	serv_info = serv_get(addr);
 	if (serv_info == NULL) {
-		serv_info = serv_add(addr)
+		serv_info = serv_add(addr);
 		curr_thruput = serv_info->thruput;
 	}
 
-	if (scurr_thruput != -1) {
+	if (curr_thruput != -1) {
 		new_thruput = (int)(alpha * curr_thruput + (1 - alpha) * new_thruput);
 		
 	}
@@ -62,21 +62,26 @@ void init_serv_list() {
 
 
 
-serv_list_t* serv_add(sockaddr_in *serv) {
+serv_list_t* serv_add(struct sockaddr_in *serv) {
 	serv_list_t *ptr = serv_list;
 	serv_list_t *tmp;
-	while (ptr->next != NULL) {
-		ptr = ptr->next;
-	}
+
 	tmp = (serv_list_t*)malloc(sizeof(serv_list_t));
 	tmp->addr = serv->sin_addr.s_addr;
-	tmp->thruput = -1;
+	tmp->thruput = 0;
 	tmp->next = NULL;
+	if(ptr!= NULL) {
+		while (ptr->next != NULL)
+			ptr = ptr->next;
+		ptr->next = tmp;
+	} else {
+		serv_list = tmp;
+	}
 	return tmp;
 }
 
 
-void serv_del(sockaddr_in *serv) {
+void serv_del(struct sockaddr_in *serv) {
 	serv_list_t *curr = serv_list;
 	serv_list_t *prev = NULL;
 	uint32_t addr = serv->sin_addr.s_addr;
@@ -108,8 +113,8 @@ void serv_del(sockaddr_in *serv) {
 }
 
 
-serv_list_t* serv_get(sockaddr_in *serv) {
-	serv_list_t *ptr
+serv_list_t* serv_get(struct sockaddr_in *serv) {
+	serv_list_t *ptr;
 	uint32_t addr = serv->sin_addr.s_addr;
 	for (ptr = serv_list; ptr != NULL; ptr = ptr->next) {
 		if (ptr->addr == addr) {
@@ -123,3 +128,22 @@ serv_list_t* serv_get(sockaddr_in *serv) {
 	return NULL;
 }
 
+void modi_path(char* path, int thruput) {
+	char buffer[MAXLINE] ={0};
+	char* vod_index = NULL;
+	char* seg_index = NULL;
+
+	vod_index = strstr(path,"/vod/");
+	seg_index = strstr(path,"Seg");
+
+	/* check if need to modify bitrate in uri */
+	if( seg_index != NULL) {
+		fprintf(stderr, "old path:%s\n",path );
+		strncpy(buffer,path,vod_index-path+5);
+		strcat(buffer,"100");
+		strcat(buffer,seg_index);
+		memset(path,0,MAXLINE);
+		strcpy(path,buffer);
+		fprintf(stderr, "new path:%s\n",path );
+	} 
+}

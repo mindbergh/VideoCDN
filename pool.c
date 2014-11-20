@@ -12,7 +12,7 @@ static const char *VIDEO_SERVER_PORT = "8080";
 * @param p the pointer to the pool
 * @return Void
 */
-void init_pool(int listen_sock, pool_t *p) {
+void init_pool(int listen_sock, pool_t *p, char** argv) {
     int i;
     p->maxi = -1;
     for (i = 0; i < FD_SETSIZE; i++) {
@@ -21,9 +21,11 @@ void init_pool(int listen_sock, pool_t *p) {
     p->maxfd = listen_sock;
     p->cur_conn = 0;
     p->serv_sock = -1;
-    p->fake_ip = NULL;
-    p->www_ip = NULL;
+    p->fake_ip = argv[4];
     p->alpha = -1;
+    if(argv[7])
+        p->www_ip = argv[7];
+    fprintf(stderr, "\n");
     FD_ZERO(&p->read_set);
     FD_ZERO(&p->write_set);
     FD_SET(listen_sock, &p->read_set);
@@ -76,7 +78,6 @@ int open_server_socket(char *fake_ip, char *www_ip) {
     struct sockaddr_in fake_addr;
     struct sockaddr_in serv_addr;
     int rc;
-
     assert(fake_ip != NULL);
 
     /* Create the socket descriptor */

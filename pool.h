@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>
@@ -23,10 +24,10 @@
  *
  */
 typedef struct conn_s {
-    
     int fd;        /* client fd */
     unsigned int cur_size; /* current used size of this buf */
     unsigned int size;     /* whole size of this buf */
+	int thruput; /* the current thruput */
 } conn_t;
 
 typedef struct pool_s {
@@ -35,9 +36,9 @@ typedef struct pool_s {
 	float alpha;
 	char *fake_ip;
 	char *www_ip;
-	fd_set read_set; /* The set of fd Liso is looking at before recving */
+	fd_set read_set; /* The set of fd proxy is looking at before recving */
 	fd_set ready_read; /* The set of fd that is ready to recv */
-	fd_set write_set; /* The set of fd Liso is looking at before sending*/
+	fd_set write_set; /* The set of fd proxy is looking at before sending*/
 	fd_set ready_write; /* The set of fd that is ready to write */
 	int nready; /* The # of fd that is ready to recv or send */
 	int cur_conn; /* The current number of established connection */
@@ -47,7 +48,7 @@ typedef struct pool_s {
 
 
 
-void init_pool(int, pool_t *);
+void init_pool(int, pool_t *,char**);
 int open_listen_socket(int);
 int open_server_socket(char *, char *);
 void add_client(int conn_sock, pool_t *p);

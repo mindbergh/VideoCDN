@@ -29,7 +29,6 @@ static const char *pxy_connection_hdr = "Proxy-Connection: Keep-Alive\r\n\r\n";
 
 /* Function prototype */
 void proxy(pool_t *, int);
-void server2client(pool_t,int);
 int parse_uri(char *uri, char *host, int *port, char *path);
 void clienterror(int fd, char *cause, char *errnum, 
 		 char *shortmsg, char *longmsg);
@@ -135,7 +134,8 @@ int main(int argc, char **argv) {
             }
             
             DPRINTF("New client %d accepted\n", client_sock);
-            fcntl(client_sock, F_SETFL, O_NONBLOCK);
+            int nonblock_flags = fcntl(client_sock,F_GETFL,0);
+            fcntl(client_sock, F_SETFL,nonblock_flags|O_NONBLOCK);
             add_client(client_sock, &pool);
         }
         if(pool.nready>0) {
@@ -159,30 +159,11 @@ void serve_clients(pool_t* p) {
         conni = p->conn[i];
         conn_sock = conni->fd;
         if(FD_ISSET(conn_sock, &p->ready_read)) {
-            if (1) 
-                client2server(p, i);
-            else
-                server2client(p, i);
+            proxy(p, i);
             p->nready--;
         }
     }
 }
-
-
-void server2client(p,i) {
-    while ((n = io_recvn(serv_fd, buf_internet, MAXLINE)) > 0) {
-    sum += n; /*
-    if (VERBOSE) {
-        fprintf(stderr, "This line %zu:\n", n);
-        write(STDOUT_FILENO, buf_internet, n);
-        fprintf(stderr, "\n");
-    }*/
-    //io_sendn(fd, buf_internet, n);
-
-    // to do: parse xml
-    }
-}
-
 
 /*
  * proxy - handle one proxy request/response transaction
@@ -285,17 +266,18 @@ void proxy(pool_t *p, int i)
     io_sendn(serv_fd, connection_hdr, strlen(connection_hdr));
     io_sendn(serv_fd, pxy_connection_hdr, strlen(pxy_connection_hdr));
 
+    sleep(3);
 	/* Forward respond */
     //exit(0);
     gettimeofday(&start, NULL);
-    if((n = io_recvn(serv_fd, buf_internet, MAXLINE)) > 0) {
+    while ((n = io_recvn(serv_fd, buf_internet, MAXLINE)) > 0) {
         sum += n; /*
         if (VERBOSE) {
             fprintf(stderr, "This line %zu:\n", n);
             write(STDOUT_FILENO, buf_internet, n);
             fprintf(stderr, "\n");
         }*/
-        fprintf(stderr, "recv looping fnished!!!\n");
+        fprintf(stderr, "recv looping fnished n=%d,sum=$d!!!\n",n);
 		if(io_sendn(fd, buf_internet, n) == -1) {
             fprintf(stderr, "fail to send back to client!\n");
             clean_state(p,fd);

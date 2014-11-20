@@ -1,0 +1,17 @@
+to do
+
+struct client {
+	
+}
+
+struct server {
+	int fd;
+	sockaddr;
+
+}
+
+struct conn {
+	server_t* s;
+	client_t* c;
+	conn_t* next;
+}

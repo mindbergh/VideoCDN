@@ -123,6 +123,8 @@ int open_server_socket(char *fake_ip, char *www_ip) {
     /* Clean up */
     if (result)
         free(result);
+    int nonblock_flags = fcntl(serverfd,F_GETFL,0);
+    fcntl(serverfd, F_SETFL,nonblock_flags|O_NONBLOCK);
     return serverfd;    
 }
 

@@ -141,9 +141,28 @@ int main(int argc, char **argv) {
         if(pool.nready>0) {
             serve_clients(&pool);
         }
+        if(pool.nready>0) {
+            serve_servers(&pool);
+        }
     }
     close_socket(listen_sock);
     return EXIT_SUCCESS;
+}
+
+void serve_servers(pool_t* p) {
+    int i;
+    upper_conn_t *conni;
+
+    for(i = 0; (i <= p->maxi) && (p->nready > 0); i++) {
+        if (p->conn[i] == NULL)
+            continue;
+        upper_conni = p->upper_conn[i];
+        serv_sock = upper_conni->serv_fd;
+        if(FD_ISSET(serv_sock, &p->ready_read)) {
+            upper_proxy(p, i);
+            p->nready--;
+        }
+    } 
 }
 
 
@@ -267,6 +286,25 @@ void proxy(pool_t *p, int i)
     io_sendn(serv_fd, pxy_connection_hdr, strlen(pxy_connection_hdr));
 
     sleep(3);
+
+    /* Ming:
+        add_server(serv_fd, i, p);
+    
+        if (flag != FLAG_LIST) return;  // done with this, wait for nofication from select 
+        send pipelined request to serv
+        
+
+
+    */    
+
+
+
+
+
+
+
+
+
 	/* Forward respond */
     //exit(0);
     gettimeofday(&start, NULL);

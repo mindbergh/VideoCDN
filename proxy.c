@@ -146,7 +146,6 @@ void serve_servers() {
     int i;
     server_t *server;
     server_t** server_l = pool.server_l;
-    exit(0);
     for(i = 0; (i <= FD_SETSIZE) && (pool.nready > 0); i++) {
         if (server_l[i] == NULL)
             continue;
@@ -194,6 +193,7 @@ void client2server(client_t* client)
     size_t sum;
 
     conn_t *conn;
+    server_t* server = NULL;
     int fd = client->fd;
     int serv_fd;
     
@@ -228,19 +228,18 @@ void client2server(client_t* client)
 		              "Ming couldn't parse the request");
 		return;
     }
-    serv_fd = pool.serv_sock;
-    /* checkpoint 2 
-    if((conn = client_get_conn(fd,) == NULL) {
-        if (p->www_ip) {
-            inet_pton(AF_INET, p->www_ip, &(sa.sin_addr));
-        } else {
-            // to do resolve DNS
-            resolve(host, port, NULL, &servinfo);
+    if (pool.www_ip) {
+        inet_pton(AF_INET, pool.www_ip, &(sa.sin_addr));
+        if((conn = client_get_conn(fd,sa.sin_addr.s_addr)) == NULL) {
+            serv_fd = open_server_socket(pool.fake_ip,pool.www_ip);
+            server = add_server(serv_fd,sa.sin_addr.s_addr);
+            conn = add_conn(client,server);
         }
     } else {
-        serv_fd = conn->server->fd;
+        resolve(host, port, NULL, &servinfo);
     }
-    */
+    serv_fd = conn->server->fd;
+
     if (endsWith(path, ".f4m")) {
         flag = FLAG_LIST;
         strcpy(path_list, path);

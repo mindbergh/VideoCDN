@@ -32,15 +32,11 @@ void init_pool(int listen_sock, pool_t *p, char** argv) {
 
     if(argv[7])
         pool.www_ip = argv[7];
-    pool.serv_sock = open_server_socket(pool.fake_ip,
-        pool.www_ip);
-
     fprintf(stderr, "\n");
     FD_ZERO(&(pool.read_set));
     FD_ZERO(&(pool.write_set));
     FD_SET(listen_sock, &(pool.read_set));
-    FD_SET(pool.serv_sock,&(pool.read_set));
-    pool.maxfd = listen_sock>pool.serv_sock?listen_sock:pool.serv_sock;
+    pool.maxfd = listen_sock;
 }
 
 

@@ -8,8 +8,10 @@ conn_t* client_get_conn(int fd, uint32_t addr) {
 	int i = 0;
 	conn_t** conn = pool.conn_l;
 	for( i =0; i<=pool.cur_conn;i++) {
-		if(conn[i]->server->fd == fd 
-			&& conn[i]->client->addr == addr) {
+		if (conn[i] == NULL) 
+			continue;
+		if(conn[i]->client->fd == fd 
+			&& conn[i]->server->addr == addr) {
 			return conn[i];
 		}
 	}

@@ -266,7 +266,7 @@ void proxy(pool_t *p, int i)
     io_sendn(serv_fd, connection_hdr, strlen(connection_hdr));
     io_sendn(serv_fd, pxy_connection_hdr, strlen(pxy_connection_hdr));
 
-    sleep(3);
+    sleep(10);
 	/* Forward respond */
     //exit(0);
     gettimeofday(&start, NULL);

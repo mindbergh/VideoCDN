@@ -146,7 +146,7 @@ void serve_servers() {
     int i;
     server_t *server;
     server_t** server_l = pool.server_l;
-    for(i = 0; (i <= FD_SETSIZE) && (pool.nready > 0); i++) {
+    for(i = 0; (i < FD_SETSIZE) && (pool.nready > 0); i++) {
         if (server_l[i] == NULL)
             continue;
         server = server_l[i];
@@ -165,7 +165,7 @@ void serve_clients() {
     client_t *client;
     client_t** client_l = pool.client_l;
 
-    for(i = 0; (i <= FD_SETSIZE) && (pool.nready > 0); i++) {
+    for(i = 0; (i < FD_SETSIZE) && (pool.nready > 0); i++) {
         if (client_l[i] == NULL)
             continue;
         client = client_l[i];
@@ -319,7 +319,7 @@ void server2client(server_t* server) {
     int server_fd = server->fd;
     int client_fd;
     conn_t* conn;
-    size_t n;
+    int n;
     size_t sum;
     char buf_internet[MAXBUF];
     client_t* client;
@@ -333,14 +333,14 @@ void server2client(server_t* server) {
 
     /* Forward respond */
     //gettimeofday(&start, NULL);
-    while ((n = io_recvn(server_fd, buf_internet, MAXLINE)) > 0) {
-        sum += n; 
+    while ((n = io_recvn(server_fd, buf_internet, MAXBUF)) > 0) {
+        sum += n;
+        fprintf(stderr, "n=%d\n",n); 
         //fprintf(stderr, "recv looping fnished n=%d,sum=$d!!!\n",n);
         if(io_sendn(client_fd, buf_internet, n) == -1) {
-            clean_state(&pool,client_fd);
+            close_conn(conn);
             return;
         }
-        fprintf(stderr, "looping!!!\n");
     }
     fprintf(stderr, "finish transimit content!\n");
     DPRINTF("Forward respond %zu bytes\n", sum); 

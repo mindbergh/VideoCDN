@@ -133,8 +133,6 @@ int open_server_socket(char *fake_ip, char *www_ip) {
         free(result);
     int nonblock_flags = fcntl(serverfd,F_GETFL,0);
     fcntl(serverfd, F_SETFL,nonblock_flags|O_NONBLOCK);
-    
-    add_server(serverfd,serv_addr.sin_addr.s_addr);
     return serverfd;    
 }
 
@@ -179,7 +177,7 @@ server_t* add_server(int sock, uint32_t addr) {
     server_t* new_server;
     server_t** serv_l = pool.server_l;
     int i = 0;
-    for(;i<=FD_SETSIZE;i++) {
+    for(; i < FD_SETSIZE;i++) {
 
         if (serv_l[i] == NULL) {
             new_server = (server_t*)malloc(sizeof(server_t));

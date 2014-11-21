@@ -7,7 +7,7 @@ extern pool_t pool;
 conn_t* client_get_conn(int fd, uint32_t addr) {
 	int i = 0;
 	conn_t** conn = pool.conn_l;
-	for( i =0; i<=pool.cur_conn;i++) {
+	for( i =0; i<pool.cur_conn;i++) {
 		if (conn[i] == NULL) 
 			continue;
 		if(conn[i]->client->fd == fd 
@@ -21,7 +21,9 @@ conn_t* client_get_conn(int fd, uint32_t addr) {
 conn_t* server_get_conn(int fd) {
 	int i = 0;
 	conn_t** conn = pool.conn_l;
-	for( i =0; i<=pool.cur_conn;i++) {
+	for( i =0; i<pool.cur_conn;i++) {
+		if (conn[i] == NULL) 
+			continue;
 		if(conn[i]->server->fd == fd) {
 			return conn[i];
 		}
@@ -53,6 +55,10 @@ conn_t* add_conn(client_t* client, server_t* server) {
 
 void del_conn(conn_t* del_conn) {
     //to do
+    close_client();
+    close_server();
+    close_socket(del_conn->server->fd);
+    close_socket(del_conn->client->fd);
 }; 
 
 int update_thruput(size_t sum, struct timeval* start, 

@@ -57,7 +57,6 @@ ssize_t io_recvn(int fd, char *buf, size_t n) {
 		nleft -= nread;
 		res += nread;
 	}
-
 	if (nread == -1) {
 		if (errno == EAGAIN || errno == EWOULDBLOCK){
 			fprintf(stderr, "read entire buffer\n");
@@ -70,6 +69,7 @@ ssize_t io_recvn(int fd, char *buf, size_t n) {
 		}
 	}
 	if (nread == 0) {
+		exit(0);
 		DPRINTF("recv error on0 %s\n", strerror(errno));
 		return -1;
 	}

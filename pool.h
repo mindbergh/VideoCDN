@@ -30,6 +30,16 @@ typedef struct conn_s {
 	int thruput; /* the current thruput */
 } conn_t;
 
+/** This is a struct to represent a conn from proxy to a server 
+ *  clit_idx the index to conn in the pool that represents the client associated with this upper conn
+ *  serv_fd  the serv_fd to read thing from
+ */
+typedef struct upper_conn_s {
+	int clit_idx;   // 
+	int serv_fd;    // 
+} upper_conn_t;
+
+
 typedef struct pool_s {
 	int maxfd;
 	int serv_sock;
@@ -44,6 +54,7 @@ typedef struct pool_s {
 	int cur_conn; /* The current number of established connection */
 	int maxi; /* The max index of fd */
 	conn_t *conn[FD_SETSIZE]; /* array of points to buff */
+	uppoer_t *upper_conn[FD_SETSIZE];
 } pool_t;
 
 

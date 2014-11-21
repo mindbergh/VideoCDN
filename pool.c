@@ -167,6 +167,12 @@ void add_client(int conn_sock, pool_t *p) {
     }
 }
 
+
+
+void add_server(int serv_fd, int clit_idx, pool_t *p) {
+    // check if this serv_fd clit_idx pair has already exsited in the pool
+}
+
 /** @brief Free a Buff struct that represents a connection
  *  @param bufi the Buff struct to be freeed
  *  @return Void

@@ -9,7 +9,7 @@
 ################################################################################
 CFLAGS = -Wall -g
 CC = gcc
-objects = pool.o io.o mydns.o proxy.o media.o
+objects = pool.o io.o mydns.o proxy.o media.o conn.o
 
 default: proxy
 
@@ -18,11 +18,12 @@ default: proxy
 proxy: $(objects)
 		$(CC) -o $@ $^ $(LDFLAGS)
 
-proxy.o: proxy.c pool.h mydns.h debug.h io.h media.h
+proxy.o: proxy.c pool.h mydns.h debug.h io.h media.h conn.h
 pool.o: pool.c pool.h
 io.o: io.c io.h
 mydns.o: mydns.c mydns.h
 media.o: media.c media.h
+conn.o: conn.c conn.h
 
 %.o: %.c
 		$(CC) -c $(CFLAGS) -o $@ $<

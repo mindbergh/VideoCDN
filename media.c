@@ -17,31 +17,6 @@ int endsWith(char* base, char* str) {
     return (blen >= slen) && (0 == strcmp(base + blen - slen, str));
 }
 
-
-
-int update_thruput(size_t sum, struct timeval* start, pool_t* p, struct sockaddr_in *addr) {
-	int curr_thruput;
-	double elapsed = get_time_diff(start);
-	double new_thruput = sum / elapsed;
-	float alpha = p->alpha;
-	serv_list_t *serv_info;
-
-	serv_info = serv_get(addr);
-	if (serv_info == NULL) {
-		serv_info = serv_add(addr);
-		curr_thruput = serv_info->thruput;
-	}
-
-	if (curr_thruput != -1) {
-		new_thruput = (int)(alpha * curr_thruput + (1 - alpha) * new_thruput);
-		
-	}
-	serv_info->thruput = (int)new_thruput;
-	return (int)new_thruput; 
- 
-
-}
-
 /** @brief Get a time interval between now and given start time
  *  @param start The start time point
  *  @return a double represent time interval in second.

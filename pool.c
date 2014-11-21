@@ -1,6 +1,7 @@
 #include "pool.h"
 #include "debug.h"
 
+extern pool_t pool;
 
 static const char *VIDEO_SERVER_ADDR = "video.cs.cmu.edu";
 static const char *VIDEO_SERVER_PORT = "8080";
@@ -16,19 +17,30 @@ void init_pool(int listen_sock, pool_t *p, char** argv) {
     int i;
     p->maxi = -1;
     for (i = 0; i < FD_SETSIZE; i++) {
-        p->conn[i] = NULL;
+        pool.conn_l[i] = NULL;
+        pool.client_l[i] = NULL;
+        pool.server_l[i] = NULL;
     }
-    p->maxfd = listen_sock;
-    p->cur_conn = 0;
-    p->serv_sock = -1;
-    p->fake_ip = argv[4];
-    p->alpha = -1;
+
+    pool.maxfd = listen_sock;
+    pool.cur_conn = 0;
+    pool.fake_ip = argv[4];
+    pool.alpha = -1;
+    pool.cur_conn = 0;
+    pool.cur_client = 0;
+    pool.cur_server = 0;
+
     if(argv[7])
-        p->www_ip = argv[7];
+        pool.www_ip = argv[7];
+    pool.serv_sock = open_server_socket(pool.fake_ip,
+        pool.www_ip);
+
     fprintf(stderr, "\n");
-    FD_ZERO(&p->read_set);
-    FD_ZERO(&p->write_set);
-    FD_SET(listen_sock, &p->read_set);
+    FD_ZERO(&(pool.read_set));
+    FD_ZERO(&(pool.write_set));
+    FD_SET(listen_sock, &(pool.read_set));
+    FD_SET(pool.serv_sock,&(pool.read_set));
+    pool.maxfd = listen_sock>pool.serv_sock?listen_sock:pool.serv_sock;
 }
 
 
@@ -125,6 +137,8 @@ int open_server_socket(char *fake_ip, char *www_ip) {
         free(result);
     int nonblock_flags = fcntl(serverfd,F_GETFL,0);
     fcntl(serverfd, F_SETFL,nonblock_flags|O_NONBLOCK);
+    
+    add_server(serverfd,serv_addr.sin_addr.s_addr);
     return serverfd;    
 }
 
@@ -136,42 +150,89 @@ int open_server_socket(char *fake_ip, char *www_ip) {
  *  @param port the port of the client
  *  @return Void
  */
-void add_client(int conn_sock, pool_t *p) {
+client_t* add_client(int conn_sock, uint32_t addr) {
     int i;
-    conn_t *conni;
-    p->cur_conn++;
-    p->nready--;
-    for (i = 0; i < FD_SETSIZE; i++)
-        if (p->conn[i] == NULL) {
-            p->conn[i] = (conn_t *)malloc(sizeof(conn_t));
-            conni = p->conn[i];
-            //conni->buf = (char *)malloc(BUF_SIZE);
-            conni->cur_size = 0;
-            conni->size = BUF_SIZE;
-            conni->fd = conn_sock;
-            conni->thruput = 0;
-            FD_SET(conn_sock, &p->read_set);
+    client_t* new_client;
+    client_t** client_l = pool.client_l;
 
-            if (conn_sock > p->maxfd)
-                p->maxfd = conn_sock;
-            if (i > p->maxi)
-                p->maxi = i;
-            //log_write_string("HTTP client added: %s", bufi->addr);
-            break;
+    for (i = 0; i < FD_SETSIZE; i++)
+        if (client_l[i] == NULL) {
+            new_client = (client_t*)malloc(sizeof(client_t));
+            new_client->cur_size = 0;
+            new_client->size = BUF_SIZE;
+            new_client->fd = conn_sock;
+            new_client->addr = addr;
+
+            client_l[i] = new_client;
+            pool.cur_client++;
+
+            FD_SET(conn_sock, &(pool.read_set));
+            if (conn_sock > pool.maxfd)
+                pool.maxfd = conn_sock;
+            return new_client;
         }
 
 
-    if (i == FD_SETSIZE) {
-        fprintf(stderr, "Too many client.\n");        
-        exit(EXIT_FAILURE);
+    /* failed to add new server */
+    return NULL;
+}
+
+
+
+server_t* add_server(int sock, uint32_t addr) {
+    server_t* new_server;
+    server_t** serv_l = pool.server_l;
+    int i = 0;
+    for(;i<=FD_SETSIZE;i++) {
+
+        if (serv_l[i] == NULL) {
+            new_server = (server_t*)malloc(sizeof(server_t));
+            new_server->fd = sock;
+            new_server->addr = addr;
+            new_server->cur_size = 0;
+            new_server->size = MAXBUF;
+
+            serv_l[i] = new_server;
+            pool.cur_server++;
+            
+            FD_SET(sock, &(pool.read_set));
+            if (sock > pool.maxfd)
+                pool.maxfd = sock;
+
+            return new_server;
+        }
     }
+
+    /* failed to add new server */
+    return NULL;
+}
+
+client_t* get_client(int sock) {
+    client_t** client_l = pool.client_l;
+    int i;
+    for(i=0; i < FD_SETSIZE; i++) {
+        if(client_l[i] != NULL && 
+            client_l[i]->fd == sock) {
+            return client_l[i];
+        }
+    }
+    return NULL;
+}
+
+server_t* get_server(int sock) {
+    server_t** server_l = pool.server_l;
+    int i;
+    for(i=0; i < FD_SETSIZE; i++) {
+        if(server_l[i] != NULL && 
+            server_l[i]->fd == sock) {
+            return server_l[i];
+        }
+    }
+    return NULL;
 }
 
 
 
-void add_server(int serv_fd, int clit_idx, pool_t *p) {
-    // check if this serv_fd clit_idx pair has already exsited in the pool
-}
 
 /** @brief Free a Buff struct that represents a connection
  *  @param bufi the Buff struct to be freeed
@@ -203,38 +264,5 @@ int close_socket(int sock) {
  */
 void clean_state(pool_t *p, int listen_sock) {
     int i, conn_sock;
-    for (i = 0; i <= p->maxi; i++) {
-        if (p->conn[i]) {
-            conn_sock = p->conn[i]->fd;
-            if (close_socket(conn_sock)) {
-                DPRINTF("Error closing client socket.\n");                        
-            }   
-            p->cur_conn--;
-            FD_CLR(conn_sock, &p->read_set);
-            free_buf(p, p->conn[i]);
-            p->conn[i] = NULL;                               
-        }
-    }
-    p->maxi = -1;
-    p->maxfd = listen_sock;
-    p->cur_conn = 0;
-}
-
-/** @brief Close given connection
- *  @param p the Pool struct
- *         i the ith connection in the pool
- *  @return Void
- */
-void close_conn(pool_t *p, int i) {
-    //if (p->buf[i] == NULL)
-        //return;
-    int conn_sock = p->conn[i]->fd;
-    if (close_socket(conn_sock)) {
-        fprintf(stderr, "Error closing client socket.\n");                        
-    }
-    p->cur_conn--;
-    free_buf(p, p->conn[i]);
-    FD_CLR(conn_sock, &p->read_set);
-    FD_CLR(conn_sock, &p->write_set);
-    p->conn[i] = NULL;
+    // rewrite whole thing
 }

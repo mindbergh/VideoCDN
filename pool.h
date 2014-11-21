@@ -10,6 +10,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include "conn.h"
 #include "mydns.h"
 
 #define BUF_SIZE 8192 /* Initial buff size */
@@ -18,27 +19,6 @@
 #define MAX_SIZE_HEADER 8192 /* Max length of size info for the incomming msg */
 #define LISTENQ 1024 /* second argument to listen() */
 #define VERBOSE 1 /* Whether to print out debug infomations */
-
-/** @brief The buff struct that keeps track of current 
- *         used size and whole size
- *
- */
-typedef struct conn_s {
-    int fd;        /* client fd */
-    unsigned int cur_size; /* current used size of this buf */
-    unsigned int size;     /* whole size of this buf */
-	int thruput; /* the current thruput */
-} conn_t;
-
-/** This is a struct to represent a conn from proxy to a server 
- *  clit_idx the index to conn in the pool that represents the client associated with this upper conn
- *  serv_fd  the serv_fd to read thing from
- */
-typedef struct upper_conn_s {
-	int clit_idx;   // 
-	int serv_fd;    // 
-} upper_conn_t;
-
 
 typedef struct pool_s {
 	int maxfd;
@@ -52,20 +32,26 @@ typedef struct pool_s {
 	fd_set ready_write; /* The set of fd that is ready to write */
 	int nready; /* The # of fd that is ready to recv or send */
 	int cur_conn; /* The current number of established connection */
+	int cur_client;	/* The current number of connected client */
+	int cur_server; /* The current number of connected server */
 	int maxi; /* The max index of fd */
-	conn_t *conn[FD_SETSIZE]; /* array of points to buff */
-	uppoer_t *upper_conn[FD_SETSIZE];
+	client_t* client_l[FD_SETSIZE];
+ 	server_t* server_l[FD_SETSIZE];
+	conn_t* conn_l[FD_SETSIZE]; /* array of points to all connections */
 } pool_t;
-
-
 
 void init_pool(int, pool_t *,char**);
 int open_listen_socket(int);
 int open_server_socket(char *, char *);
-void add_client(int conn_sock, pool_t *p);
+client_t* add_client(int sock, uint32_t addr);
+server_t* add_server(int sock, uint32_t addr);
+client_t* get_client(int sock);
+server_t* get_server(int sock);
 void free_buf(pool_t *, conn_t *);
 int close_socket(int);
 void clean_state(pool_t *, int);
 #endif
+
+
 
 

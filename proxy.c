@@ -14,10 +14,14 @@
 #include "pool.h"
 #include "io.h"
 #include "media.h"
-
+#include "conn.h"
 
 #define FLAG_VIDEO    0
 #define FLAG_LIST     1
+
+/* global variable */
+ pool_t pool; 
+
 
 /* You won't lose style points for including these long lines in your code */
 static const char *user_agent_hdr = "User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:10.0.3) Gecko/20120305 Firefox/10.0.3\r\n";
@@ -28,28 +32,27 @@ static const char *pxy_connection_hdr = "Proxy-Connection: Keep-Alive\r\n\r\n";
 
 
 /* Function prototype */
-void proxy(pool_t *, int);
 int parse_uri(char *uri, char *host, int *port, char *path);
 void clienterror(int fd, char *cause, char *errnum, 
 		 char *shortmsg, char *longmsg);
 void read_requesthdrs(int);
-void serve_clients(pool_t*);
+void serve_clients();
+void serve_servers();
+void client2server(client_t*);
+void server2client(server_t*);
 void usage();
 
 
 int main(int argc, char **argv) {
     int listen_sock, client_sock;
     socklen_t cli_size;
-    struct sockaddr cli_addr;
+    struct sockaddr_in cli_addr;
     sigset_t mask, old_mask;
     
     int lis_port = 0; /* The port for the HTTP server to listen on */
     unsigned int dns_port = 0;
     char *log_file = NULL; /* File to send log messages to (debug, info, error) */
     char *dns_ip = NULL;
-
-    /* all activate connection pool */
-    pool_t pool;
 
     if (argc != 7 && argc != 8) {
         DPRINTF("%d",argc);
@@ -88,16 +91,6 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
     init_pool(listen_sock, &pool, argv);
-    /*
-    pool.serv_sock = open_server_socket(fake_ip, www_ip);
-    if (pool.serv_sock < 0) {
-        DPRINTF("open_server_socket: error!\n");
-        exit(EXIT_FAILURE);
-    }*/
-
-    
-
-    
 
     memset(&cli_addr, 0, sizeof(struct sockaddr));
     memset(&cli_size, 0, sizeof(socklen_t));
@@ -108,13 +101,13 @@ int main(int argc, char **argv) {
         pool.ready_write = pool.write_set;
         
         
-        DPRINTF("New select\n");
+        //DPRINTF("New select\n");
         
         pool.nready = select(pool.maxfd + 1, &pool.ready_read,
                              &pool.ready_write, NULL, NULL);
         
         
-        DPRINTF("nready = %d\n", pool.nready);
+        //DPRINTF("nready = %d\n", pool.nready);
 
         if (pool.nready == -1) {
             /* Something wrong with select */
@@ -136,59 +129,61 @@ int main(int argc, char **argv) {
             DPRINTF("New client %d accepted\n", client_sock);
             int nonblock_flags = fcntl(client_sock,F_GETFL,0);
             fcntl(client_sock, F_SETFL,nonblock_flags|O_NONBLOCK);
-            add_client(client_sock, &pool);
+            add_client(client_sock, cli_addr.sin_addr.s_addr);
         }
         if(pool.nready>0) {
-            serve_clients(&pool);
+            serve_clients();
         }
         if(pool.nready>0) {
-            serve_servers(&pool);
+            serve_servers();
         }
     }
     close_socket(listen_sock);
     return EXIT_SUCCESS;
 }
 
-void serve_servers(pool_t* p) {
+void serve_servers() {
     int i;
-    upper_conn_t *conni;
-
-    for(i = 0; (i <= p->maxi) && (p->nready > 0); i++) {
-        if (p->conn[i] == NULL)
+    server_t *server;
+    server_t** server_l = pool.server_l;
+    exit(0);
+    for(i = 0; (i <= FD_SETSIZE) && (pool.nready > 0); i++) {
+        if (server_l[i] == NULL)
             continue;
-        upper_conni = p->upper_conn[i];
-        serv_sock = upper_conni->serv_fd;
-        if(FD_ISSET(serv_sock, &p->ready_read)) {
-            upper_proxy(p, i);
-            p->nready--;
+        server = server_l[i];
+        if(FD_ISSET(server->fd,&(pool.ready_read))) {
+            server2client(server);
+            FD_CLR(server->fd, &(pool.read_set));
+            FD_SET(server->fd, &(pool.read_set));
+            pool.nready--;
         }
     } 
 }
 
 
-void serve_clients(pool_t* p) {
+void serve_clients() {
     int i;
-    conn_t *conni;
-    int conn_sock = -1;
-    int serv_sock = p->serv_sock;
+    client_t *client;
+    client_t** client_l = pool.client_l;
 
-    for(i = 0; (i <= p->maxi) && (p->nready > 0); i++) {
-        if (p->conn[i] == NULL)
+    for(i = 0; (i <= FD_SETSIZE) && (pool.nready > 0); i++) {
+        if (client_l[i] == NULL)
             continue;
-        conni = p->conn[i];
-        conn_sock = conni->fd;
-        if(FD_ISSET(conn_sock, &p->ready_read)) {
-            proxy(p, i);
-            p->nready--;
+        client = client_l[i];
+        if(FD_ISSET(client->fd,&(pool.ready_read))) {
+            client2server(client);
+            pool.nready--;
+            FD_CLR(client->fd, &(pool.read_set));
+            FD_SET(client->fd, &(pool.read_set));
         }
-    }
+    } 
 }
 
 /*
  * proxy - handle one proxy request/response transaction
  */
 /* $begin proxy */
-void proxy(pool_t *p, int i) 
+void client2server(client_t* client) 
 {
     char buf[MAXLINE], method[MAXLINE], uri[MAXLINE], version[MAXLINE];
     char buf_internet[MAXLINE];
@@ -196,10 +191,12 @@ void proxy(pool_t *p, int i)
     int port;
     int flag;
     size_t n;
-    size_t sum = 0;
-    conn_t *conni = p->conn[i];
-    int fd = conni->fd;
+    size_t sum;
+
+    conn_t *conn;
+    int fd = client->fd;
     int serv_fd;
+    
     struct timeval start;
     struct addrinfo *servinfo;
     int lagv = -1;
@@ -231,15 +228,19 @@ void proxy(pool_t *p, int i)
 		              "Ming couldn't parse the request");
 		return;
     }
-
-    if (p->www_ip) {
-        serv_fd = open_server_socket(p->fake_ip, p->www_ip);
-        inet_pton(AF_INET, p->www_ip, &(sa.sin_addr));
+    serv_fd = pool.serv_sock;
+    /* checkpoint 2 
+    if((conn = client_get_conn(fd,) == NULL) {
+        if (p->www_ip) {
+            inet_pton(AF_INET, p->www_ip, &(sa.sin_addr));
+        } else {
+            // to do resolve DNS
+            resolve(host, port, NULL, &servinfo);
+        }
     } else {
-        // to do resolve DNS
-        resolve(host, port, NULL, &servinfo);
+        serv_fd = conn->server->fd;
     }
-
+    */
     if (endsWith(path, ".f4m")) {
         flag = FLAG_LIST;
         strcpy(path_list, path);
@@ -270,11 +271,9 @@ void proxy(pool_t *p, int i)
         printf("port = \"%d\", ", port);
         printf("path = \"%s\"\n", path);
     }
-
-    //exit(0);
     
 	/* Forward request */
-    modi_path(path,conni->thruput);
+    modi_path(path,conn->thruput);
     sprintf(buf_internet, "GET %s HTTP/1.1\r\n", path);
     io_sendn(serv_fd, buf_internet, strlen(buf_internet));
 	sprintf(buf_internet, "Host: %s\r\n", host);
@@ -294,31 +293,10 @@ void proxy(pool_t *p, int i)
 
 
     */    
-
-	/* Forward respond */
-    //exit(0);
-    gettimeofday(&start, NULL);
-    while ((n = io_recvn(serv_fd, buf_internet, MAXLINE)) > 0) {
-        sum += n; /*
-        if (VERBOSE) {
-            fprintf(stderr, "This line %zu:\n", n);
-            write(STDOUT_FILENO, buf_internet, n);
-            fprintf(stderr, "\n");
-        }*/
-        fprintf(stderr, "recv looping fnished n=%d,sum=$d!!!\n",n);
-		if(io_sendn(fd, buf_internet, n) == -1) {
-            fprintf(stderr, "fail to send back to client!\n");
-            clean_state(p,fd);
-            return;
-        }
-        fprintf(stderr, "looping!!!\n");
-	}
-    fprintf(stderr, "finish transimit content!\n");
+    /*
     if (flag == FLAG_VIDEO) {
         new_thruput = update_thruput(sum, &start, p, &sa);
     } else if (flag == FLAG_LIST) {
-        serv_fd = open_server_socket(p->fake_ip, p->www_ip);
-        
         sprintf(buf_internet, "GET %s HTTP/1.1\r\n", path_list);
         io_sendn(serv_fd, buf_internet, strlen(buf_internet));
         sprintf(buf_internet, "Host: %s\r\n", host);
@@ -330,24 +308,46 @@ void proxy(pool_t *p, int i)
         io_sendn(serv_fd, pxy_connection_hdr, strlen(pxy_connection_hdr));
 
         while ((n = io_recvn(serv_fd, buf_internet, MAXLINE)) > 0) {
-            sum += n; /*
-            if (VERBOSE) {
-                fprintf(stderr, "This line %zu:\n", n);
-                write(STDOUT_FILENO, buf_internet, n);
-                fprintf(stderr, "\n");
-            }*/
-            //io_sendn(fd, buf_internet, n);
-
+            sum += n; 
             // to do: parse xml
         }
 
     }
-
-    DPRINTF("Forward respond %zu bytes\n", sum);    
-    FD_CLR(fd, &p->read_set);
-    FD_SET(fd, &p->read_set);
+    */
 }
-/* $end proxyd */
+
+void server2client(server_t* server) {
+    int server_fd = server->fd;
+    int client_fd;
+    conn_t* conn;
+    size_t n;
+    size_t sum;
+    char buf_internet[MAXBUF];
+    client_t* client;
+
+    /* get connection */
+    if( (conn = server_get_conn(server_fd)) == NULL) {
+        DPRINTF("Cannot find connection from server to client! Error\n");
+        exit(-1);
+    }
+    client_fd = conn->client->fd;
+
+    /* Forward respond */
+    //gettimeofday(&start, NULL);
+    while ((n = io_recvn(server_fd, buf_internet, MAXLINE)) > 0) {
+        sum += n; 
+        //fprintf(stderr, "recv looping fnished n=%d,sum=$d!!!\n",n);
+        if(io_sendn(client_fd, buf_internet, n) == -1) {
+            clean_state(&pool,client_fd);
+            return;
+        }
+        fprintf(stderr, "looping!!!\n");
+    }
+    fprintf(stderr, "finish transimit content!\n");
+    DPRINTF("Forward respond %zu bytes\n", sum); 
+}
+
+
 
 
 /*

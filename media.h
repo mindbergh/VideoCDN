@@ -33,8 +33,6 @@ typedef struct serv_list_s {
 
 
 int endsWith (char* base, char* str);
-int update_thruput(size_t, struct timeval*, pool_t *, struct sockaddr_in*);
-
 void init_serv_list(void);
 serv_list_t* serv_add(struct sockaddr_in *);
 void serv_del(struct sockaddr_in *);

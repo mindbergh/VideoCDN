@@ -38,8 +38,8 @@ void clienterror(int fd, char *cause, char *errnum,
 void read_requesthdrs(int);
 void serve_clients();
 void serve_servers();
-void client2server(client_t*);
-void server2client(server_t*);
+void client2server(int);
+void server2client(int);
 void usage();
 
 
@@ -148,14 +148,12 @@ void serve_servers() {
     int i;
     server_t *server;
     server_t** server_l = pool.server_l;
-    for(i = 0; (i < FD_SETSIZE) && (pool.nready > 0); i++) {
+    for (i = 0; (i <= pool.max_serv_idx) && (pool.nready > 0); i++) {
         if (server_l[i] == NULL)
             continue;
         server = server_l[i];
-        if(FD_ISSET(server->fd,&(pool.ready_read))) {
-            server2client(server);
-            FD_CLR(server->fd, &(pool.read_set));
-            FD_SET(server->fd, &(pool.read_set));
+        if(FD_ISSET(server->fd, &(pool.ready_read))) {
+            server2client(i);
             pool.nready--;
         }
     } 
@@ -167,17 +165,15 @@ void serve_clients() {
     client_t *client;
     client_t** client_l = pool.client_l;
 
-    for(i = 0; (i < FD_SETSIZE) && (pool.nready > 0); i++) {
+    for (i = 0; (i <= pool.max_clit_idx) && (pool.nready > 0); i++) {
         if (client_l[i] == NULL)
             continue;
 
         client = client_l[i];
-        if(FD_ISSET(client->fd,&(pool.ready_read))) {
+        if(FD_ISSET(client->fd, &(pool.ready_read))) {
             DPRINTF("Client fd = %d, index = %d", client->fd, i);
-            client2server(client);
+            client2server(i);
             pool.nready--;
-            FD_CLR(client->fd, &(pool.read_set));
-            FD_SET(client->fd, &(pool.read_set));
         }
     } 
 }
@@ -186,7 +182,7 @@ void serve_clients() {
  * proxy - handle one proxy request/response transaction
  */
 /* $begin proxy */
-void client2server(client_t* client) 
+void client2server(int clit_idx) 
 {
     char buf[MAXLINE], method[MAXLINE], uri[MAXLINE], version[MAXLINE];
     char buf_internet[MAXLINE];
@@ -195,9 +191,12 @@ void client2server(client_t* client)
     int flag;
     size_t n;
     size_t sum;
-
-    conn_t *conn;
+    
     server_t* server = NULL;
+    client_t* client = GET_CLIT_BY_IDX(clit_idx);
+    conn_t *conn;
+    int conn_idx, serv_idx;
+    
     int fd = client->fd;
     int serv_fd;
     
@@ -234,15 +233,19 @@ void client2server(client_t* client)
     }
     if (pool.www_ip) {
         inet_pton(AF_INET, pool.www_ip, &(sa.sin_addr));
-        if((conn = client_get_conn(fd,sa.sin_addr.s_addr)) == NULL) {
+        if((conn_idx = client_get_conn(fd, sa.sin_addr.s_addr)) == -1) {
             serv_fd = open_server_socket(pool.fake_ip,pool.www_ip);
-            server = add_server(serv_fd,sa.sin_addr.s_addr);
-            conn = add_conn(client,server);
+            serv_idx = add_server(serv_fd,sa.sin_addr.s_addr);
+            conn_idx = add_conn(clit_idx, serv_idx);
+        } else {
+
         }
     } else {
         resolve(host, port, NULL, &servinfo);
     }
-    serv_fd = conn->server->fd;
+    conn = GET_CONN_BY_IDX(conn_idx);
+    server = GET_SERV_BY_IDX(conn->serv_idx);
+    serv_fd = server->fd;
 
     if (endsWith(path, ".f4m")) {
         flag = FLAG_LIST;
@@ -319,34 +322,44 @@ void client2server(client_t* client)
     */
 }
 
-void server2client(server_t* server) {
-    int server_fd = server->fd;
-    int client_fd;
+void server2client(int serv_idx) {
+    server_t* server;
+    client_t* client;
     conn_t* conn;
-    size_t n;
+
+    int server_fd;
+    int client_fd;
+    int conn_idx;
+
+    int n;
     size_t sum;
     char buf_internet[MAXBUF];
-    client_t* client;
+    
 
+
+    server = GET_SERV_BY_IDX(serv_idx);
+    server_fd = server->fd;
     /* get connection */
-    if( (conn = server_get_conn(server_fd)) == NULL) {
+    if( (conn_idx = server_get_conn(server_fd)) == -1) {
         DPRINTF("Cannot find connection from server to client! Error\n");
         exit(-1);
     }
-    client_fd = conn->client->fd;
+    conn = GET_CONN_BY_IDX(conn_idx);
+    client = GET_CLIT_BY_IDX(conn->clit_idx);
+    client_fd = client->fd;
 
     /* Forward respond */
     //gettimeofday(&start, NULL);
-    while ((n = io_recvn(server_fd, buf_internet, MAXLINE)) > 0) {
-        sum += n; 
+    while ((n = io_recvn(server_fd, buf_internet, MAXBUF)) > 0) {
+        sum += n;
+        DPRINTF("n=%d\n",n); 
         //fprintf(stderr, "recv looping fnished n=%d,sum=$d!!!\n",n);
         if(io_sendn(client_fd, buf_internet, n) == -1) {
-            clean_state(&pool,client_fd);
+            close_conn(conn_idx);
             return;
         }
-        fprintf(stderr, "looping!!!\n");
     }
-    fprintf(stderr, "finish transimit content!\n");
+    DPRINTF("finish transimit content!\n");
     DPRINTF("Forward respond %zu bytes\n", sum); 
 }
 

@@ -20,6 +20,12 @@
 #define LISTENQ 1024 /* second argument to listen() */
 #define VERBOSE 1 /* Whether to print out debug infomations */
 
+
+
+#define GET_SERV_BY_IDX(idx) (pool.server_l[idx])
+#define GET_CLIT_BY_IDX(idx) (pool.client_l[idx])
+
+
 typedef struct pool_s {
 	int maxfd;
 	int serv_sock;
@@ -34,7 +40,9 @@ typedef struct pool_s {
 	int cur_conn; /* The current number of established connection */
 	int cur_client;	/* The current number of connected client */
 	int cur_server; /* The current number of connected server */
-	int maxi; /* The max index of fd */
+	int max_conn_idx;
+	int max_clit_idx;
+	int max_serv_idx;
 	client_t* client_l[FD_SETSIZE];
  	server_t* server_l[FD_SETSIZE];
 	conn_t* conn_l[FD_SETSIZE]; /* array of points to all connections */
@@ -43,11 +51,10 @@ typedef struct pool_s {
 void init_pool(int, pool_t *,char**);
 int open_listen_socket(int);
 int open_server_socket(char *, char *);
-client_t* add_client(int sock, uint32_t addr);
-server_t* add_server(int sock, uint32_t addr);
-client_t* get_client(int sock);
-server_t* get_server(int sock);
-void free_buf(pool_t *, conn_t *);
+int add_client(int sock, uint32_t addr);
+int add_server(int sock, uint32_t addr);
+void close_clit(int clit_idx);
+void close_serv(int serv_idx);
 int close_socket(int);
 void clean_state(pool_t *, int);
 #endif

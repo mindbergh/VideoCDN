@@ -15,7 +15,9 @@ static const char *VIDEO_SERVER_PORT = "8080";
 */
 void init_pool(int listen_sock, pool_t *p, char** argv) {
     int i;
-    p->maxi = -1;
+    pool.max_conn_idx = -1;
+    pool.max_clit_idx = -1;
+    pool.max_serv_idx = -1;
     for (i = 0; i < FD_SETSIZE; i++) {
         pool.conn_l[i] = NULL;
         pool.client_l[i] = NULL;
@@ -133,8 +135,6 @@ int open_server_socket(char *fake_ip, char *www_ip) {
         free(result);
     int nonblock_flags = fcntl(serverfd,F_GETFL,0);
     fcntl(serverfd, F_SETFL,nonblock_flags|O_NONBLOCK);
-    
-    add_server(serverfd,serv_addr.sin_addr.s_addr);
     return serverfd;    
 }
 
@@ -146,7 +146,7 @@ int open_server_socket(char *fake_ip, char *www_ip) {
  *  @param port the port of the client
  *  @return Void
  */
-client_t* add_client(int conn_sock, uint32_t addr) {
+int add_client(int conn_sock, uint32_t addr) {
     int i;
     client_t* new_client;
     client_t** client_l = pool.client_l;
@@ -163,23 +163,28 @@ client_t* add_client(int conn_sock, uint32_t addr) {
             pool.cur_client++;
 
             FD_SET(conn_sock, &(pool.read_set));
-            if (conn_sock > pool.maxfd)
+            if (conn_sock > pool.maxfd) {
                 pool.maxfd = conn_sock;
-            return new_client;
+            }
+            if (i > pool.max_clit_idx) {
+                pool.max_clit_idx = i;
+            }
+            return i;
         }
 
 
     /* failed to add new server */
-    return NULL;
+    return -1;
 }
 
 
 
-server_t* add_server(int sock, uint32_t addr) {
+int add_server(int sock, uint32_t addr) {
     server_t* new_server;
     server_t** serv_l = pool.server_l;
     int i = 0;
-    for(;i<FD_SETSIZE;i++) {
+
+    for(; i < FD_SETSIZE;i++) {
 
         if (serv_l[i] == NULL) {
             new_server = (server_t*)malloc(sizeof(server_t));
@@ -192,51 +197,38 @@ server_t* add_server(int sock, uint32_t addr) {
             pool.cur_server++;
             
             FD_SET(sock, &(pool.read_set));
-            if (sock > pool.maxfd)
+            if (sock > pool.maxfd) {
                 pool.maxfd = sock;
-
-            return new_server;
+            }
+            if (i > pool.max_serv_idx) {
+                pool.max_serv_idx = i;
+            }
+            return i;
         }
     }
 
     /* failed to add new server */
-    return NULL;
-}
-
-client_t* get_client(int sock) {
-    client_t** client_l = pool.client_l;
-    int i;
-    for(i=0; i < FD_SETSIZE; i++) {
-        if(client_l[i] != NULL && 
-            client_l[i]->fd == sock) {
-            return client_l[i];
-        }
-    }
-    return NULL;
-}
-
-server_t* get_server(int sock) {
-    server_t** server_l = pool.server_l;
-    int i;
-    for(i=0; i < FD_SETSIZE; i++) {
-        if(server_l[i] != NULL && 
-            server_l[i]->fd == sock) {
-            return server_l[i];
-        }
-    }
-    return NULL;
+    return -1;
 }
 
 
 
 
-/** @brief Free a Buff struct that represents a connection
- *  @param bufi the Buff struct to be freeed
- *  @return Void
- */
-void free_buf(pool_t *p, conn_t *conni) {
-    //free(conni->buf);
-    free(conni);
+
+void close_clit(int clit_idx) {
+    client_t *client = GET_CLIT_BY_IDX(clit_idx);
+    close_socket(client->fd);
+    free(client);
+    GET_CLIT_BY_IDX(clit_idx) = NULL;    
+    pool.cur_client--;
+}
+
+void close_serv(int serv_idx) {
+    client_t *server = GET_CLIT_BY_IDX(serv_idx);
+    close_socket(server->fd);
+    free(server);
+    GET_CLIT_BY_IDX(serv_idx) = NULL;
+    pool.cur_server--;    
 }
 
 /** @brief Wrapper function for closing socket
@@ -259,6 +251,6 @@ int close_socket(int sock) {
  *  @return Void
  */
 void clean_state(pool_t *p, int listen_sock) {
-    int i, conn_sock;
+    return;
     // rewrite whole thing
 }

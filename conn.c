@@ -7,7 +7,7 @@ extern pool_t pool;
 conn_t* client_get_conn(int fd, uint32_t addr) {
 	int i = 0;
 	conn_t** conn = pool.conn_l;
-	for( i =0; i<=pool.cur_conn;i++) {
+	for( i =0; i<pool.cur_conn;i++) {
 		if (conn[i] == NULL) 
 			continue;
 		if(conn[i]->client->fd == fd 
@@ -21,7 +21,9 @@ conn_t* client_get_conn(int fd, uint32_t addr) {
 conn_t* server_get_conn(int fd) {
 	int i = 0;
 	conn_t** conn = pool.conn_l;
-	for( i =0; i<=pool.cur_conn;i++) {
+	for( i =0; i<pool.cur_conn;i++) {
+		if (conn[i] == NULL)
+			continue;
 		if(conn[i]->server->fd == fd) {
 			return conn[i];
 		}
@@ -36,7 +38,7 @@ conn_t* add_conn(client_t* client, server_t* server) {
 	int i = 0;
 
 	/* find the first available slot to add new connection */
-	for( i =0; i<=pool.cur_conn;i++) {
+	for( i =0; i<pool.cur_conn;i++) {
 		if(conn[i] == NULL) {
 			new_conn = (conn_t*)malloc(sizeof(conn_t));
 			new_conn->client = client;

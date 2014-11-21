@@ -33,6 +33,7 @@ PROJ2_HOWTO
 *.dat
 cp2_helpFile
 problem2-peer.txt
+res
 
 # dic
 tmp/*

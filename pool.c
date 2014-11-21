@@ -179,7 +179,7 @@ server_t* add_server(int sock, uint32_t addr) {
     server_t* new_server;
     server_t** serv_l = pool.server_l;
     int i = 0;
-    for(;i<=FD_SETSIZE;i++) {
+    for(;i<FD_SETSIZE;i++) {
 
         if (serv_l[i] == NULL) {
             new_server = (server_t*)malloc(sizeof(server_t));

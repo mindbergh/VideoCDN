@@ -132,9 +132,11 @@ int main(int argc, char **argv) {
             add_client(client_sock, cli_addr.sin_addr.s_addr);
         }
         if(pool.nready>0) {
+            DPRINTF("About to serve client\n");
             serve_clients();
         }
         if(pool.nready>0) {
+            DPRINTF("About to serve server\n");
             serve_servers();
         }
     }
@@ -146,7 +148,7 @@ void serve_servers() {
     int i;
     server_t *server;
     server_t** server_l = pool.server_l;
-    for(i = 0; (i <= FD_SETSIZE) && (pool.nready > 0); i++) {
+    for(i = 0; (i < FD_SETSIZE) && (pool.nready > 0); i++) {
         if (server_l[i] == NULL)
             continue;
         server = server_l[i];
@@ -165,11 +167,13 @@ void serve_clients() {
     client_t *client;
     client_t** client_l = pool.client_l;
 
-    for(i = 0; (i <= FD_SETSIZE) && (pool.nready > 0); i++) {
+    for(i = 0; (i < FD_SETSIZE) && (pool.nready > 0); i++) {
         if (client_l[i] == NULL)
             continue;
+
         client = client_l[i];
         if(FD_ISSET(client->fd,&(pool.ready_read))) {
+            DPRINTF("Client fd = %d, index = %d", client->fd, i);
             client2server(client);
             pool.nready--;
             FD_CLR(client->fd, &(pool.read_set));

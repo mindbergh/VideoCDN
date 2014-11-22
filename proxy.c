@@ -175,7 +175,7 @@ void serve_clients() {
 
         client = client_l[i];
         if(FD_ISSET(client->fd, &(pool.ready_read))) {
-            DPRINTF("Client fd = %d, index = %d", client->fd, i);
+            DPRINTF("Client fd = %d, index = %d\n", client->fd, i);
             client2server(i);
             pool.nready--;
         }
@@ -284,18 +284,18 @@ void client2server(int clit_idx)
     }
     
     /* loggin  last finished file*/
-    if(conn->last_time == NULL) { 
-        conn->last_time = (struct timeval*)malloc(sizeof(struct timeval));
-        gettimeofday(conn->last_time,NULL);
+    if(conn->start == NULL) { 
+        conn->start = (struct timeval*)malloc(sizeof(struct timeval));
+        gettimeofday(conn->start,NULL);
     } else {
         loggin(conn);
     }
-
+    DPRINTF("log finished\n");
     /* update current requested file */
     strcpy(conn->cur_file,path);
     conn->cur_file[strlen(conn->cur_file)] = '\0';
     conn->cur_size = 0;
-    gettimeofday(conn->last_time,NULL);
+    gettimeofday(conn->start,NULL);
 
 	/* Forward request */
     modi_path(path,conn->avg_put);
@@ -378,6 +378,10 @@ void server2client(int serv_idx) {
             return;
         }
     }
+
+    /* update conn end time */
+    gettimeofday(&(conn->end),NULL);
+    
     DPRINTF("finish transimit content!\n");
     DPRINTF("Forward respond %zu bytes\n", sum);
 }

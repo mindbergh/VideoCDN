@@ -31,7 +31,8 @@ typedef struct conn_s {
 	int avg_put; /* current EWMA thruput estimate in Kbps */
 	char cur_file[MAX_FILE_NAME];
 	char cur_size;
-	struct timeval* last_time;
+	struct timeval* start;
+	struct timeval end;
 } conn_t;
 
 int server_get_conn(int );

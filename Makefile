@@ -38,4 +38,4 @@ clobber: clean
 	rm -f proxy
 
 handin:
-	make clean; cd ..; tar cvf handin.tar 15-441-project-3 --exclude test
+	make clean; cd ..; tar cvf 15-441-project-3.tar 15-441-project-3 --exclude test

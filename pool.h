@@ -2,6 +2,7 @@
 #define _POOL_H
 
 #include <unistd.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -19,7 +20,6 @@
 #define MAXBUF   8192
 #define MAX_SIZE_HEADER 8192 /* Max length of size info for the incomming msg */
 #define LISTENQ 1024 /* second argument to listen() */
-#define VERBOSE 1 /* Whether to print out debug infomations */
 
 
 

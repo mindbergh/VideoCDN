@@ -8,7 +8,7 @@
 # 																			   #
 ################################################################################
 CFLAGS = -Wall -g -I/usr/include/libxml2 -lxml2
-LDFLAGS = -L -lxml2 -lm
+LDFLAGS = -lxml2 -lm
 CC = gcc
 objects = pool.o io.o mydns.o proxy.o media.o conn.o parse_xml.o timer.o log.o
 
@@ -19,7 +19,7 @@ default: proxy
 proxy: $(objects)
 		$(CC) -o $@ $^ $(LDFLAGS)
 
-proxy.o: proxy.c pool.h mydns.h debug.h io.h media.h conn.h timer.h log.h
+proxy.o: proxy.c pool.h mydns.h debug.h io.h media.h conn.h timer.h log.h parse_xml.h
 pool.o: pool.c pool.h
 io.o: io.c io.h
 mydns.o: mydns.c mydns.h

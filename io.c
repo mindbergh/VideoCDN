@@ -76,6 +76,33 @@ ssize_t io_recvn(int fd, char *buf, size_t n) {
 	return res;
 }
 
+/** @brief Read n bytes from a socket or ssl
+ *	@param fd the fd to read from
+ *  @param ubuf the buf to store things
+ *	@param n the number of bytes to reads
+ *  @return -1 on error
+ *  @return other the number of bytes reqad
+ */
+ssize_t io_recvn_block(int fd, char *buf, int n) {
+	size_t res = 0;
+	int nread;
+	size_t nleft = n;
+
+	while (1) {
+		nread = recv(fd, buf + res, nleft, 0);
+		if (nread == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+			//DPRINTF("BLOCK!\n");
+			continue;
+		} else if (nread == -1) {
+			DPRINTF("BLock recv error on %s\n", strerror(errno));
+			return -1;
+		}
+		res += nread;
+		if (res == n)
+			return res;
+	}
+}
+
 /** @brief Recv a line from a socket or ssl
  *	@param fd the fd to read from
  *  @param ubuf the buf to store things

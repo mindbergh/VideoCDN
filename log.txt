@@ -1,6 +1,6 @@
 3 0 0 0 100 10.0.0.1 /
 3 0 0 0 100 10.0.0.1 /swfobject.js
-3 0 0 0 100 10.0.0.1 /StrobeMediaPlayback.swf
+3 0 0 0 100 10.0.0.1 /StrobeMediaPlayback.swf				
 4 0 0 0 100 10.0.0.1 /vod/big_buck_bunny_nolist.f4m
 4 0 0 0 100 10.0.0.1 /vod/1000Seg1-Frag1
 4 0 0 0 100 10.0.0.1 /vod/1000Seg1-Frag2

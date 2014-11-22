@@ -22,6 +22,7 @@ typedef struct server_s {
 	unsigned int cur_size; /* current used size of this buf */
     unsigned int size;     /* whole size of this buf */ 
 	uint32_t addr;
+
 } server_t;
 
 typedef struct conn_s {
@@ -34,6 +35,14 @@ typedef struct conn_s {
 	struct timeval* start;
 	struct timeval end;
 } conn_t;
+
+typedef struct response_s {
+	int length;
+	int type;
+	char *hdr_buf;
+	int hdr_len;
+} response_t;
+
 
 int server_get_conn(int );
 int client_get_conn(int ,uint32_t);

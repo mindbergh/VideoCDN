@@ -1,6 +1,6 @@
 #include "parse_xml.h"
 
-bit_t* parse_xml(char* filename) {
+bit_t* parse_xml(char* xml_buf, int length) {
 	xmlDocPtr doc;
 	xmlNodePtr cur;
 	int size = 0;
@@ -9,7 +9,7 @@ bit_t* parse_xml(char* filename) {
 	bit_t* tail = NULL;
 	bit_t* temp = NULL;
 
-	doc = xmlParseFile(filename);
+	doc = xmlReadMemory(xml_buf, length, "noname.xml", NULL, 0);
 	if (doc == NULL) {
 		// failed to parse xml file
 		return NULL;

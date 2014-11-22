@@ -10,7 +10,8 @@ typedef struct bit_s {
 	struct bit_s* next;
 }bit_t;
 
-bit_t* parse_xml(char* filename);
+//bit_t* parse_xml(char* filename);
+bit_t* parse_xml(char* xml_buf, int length);
 int parseMedia(xmlDocPtr doc, xmlNodePtr cur);
 
 #endif

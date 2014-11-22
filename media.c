@@ -17,18 +17,6 @@ int endsWith(char* base, char* str) {
     return (blen >= slen) && (0 == strcmp(base + blen - slen, str));
 }
 
-/** @brief Get a time interval between now and given start time
- *  @param start The start time point
- *  @return a double represent time interval in second.
- */
-double get_time_diff(struct timeval* start) {
-	struct timeval now;
-	double t1 = start->tv_sec+(start->tv_usec/1000000.0);
-	double t2;
-	gettimeofday(&now, NULL);
-	t2=now.tv_sec+(now.tv_usec/1000000.0);
-	return (t2 - t1);
-}
 
 
 void init_serv_list() {
@@ -115,7 +103,7 @@ void modi_path(char* path, int thruput) {
 	if( seg_index != NULL) {
 		fprintf(stderr, "old path:%s\n",path );
 		strncpy(buffer,path,vod_index-path+5);
-		strcat(buffer,"100");
+		strcat(buffer,"10");
 		strcat(buffer,seg_index);
 		memset(path,0,MAXLINE);
 		strcpy(path,buffer);

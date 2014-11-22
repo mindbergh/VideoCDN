@@ -27,6 +27,8 @@
 
 
 typedef struct pool_s {
+	FILE* log_file;
+	struct timeval start;
 	int maxfd;
 	int serv_sock;
 	float alpha;

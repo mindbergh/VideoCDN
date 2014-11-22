@@ -15,6 +15,7 @@ static const char *VIDEO_SERVER_PORT = "8080";
 */
 void init_pool(int listen_sock, pool_t *p, char** argv) {
     int i;
+    gettimeofday(&(pool.start), NULL);
     pool.max_conn_idx = -1;
     pool.max_clit_idx = -1;
     pool.max_serv_idx = -1;
@@ -26,6 +27,11 @@ void init_pool(int listen_sock, pool_t *p, char** argv) {
 
     pool.maxfd = listen_sock;
     pool.cur_conn = 0;
+    pool.log_file = fopen(argv[1],"a+");
+    if (pool.log_file == NULL) {
+        DPRINTF("failed to open log file!\n");
+        exit(-1);
+    }
     pool.fake_ip = argv[4];
     pool.alpha = -1;
     pool.cur_conn = 0;

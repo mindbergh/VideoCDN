@@ -1,0 +1,17 @@
+3 0 10 0 100 10.0.0.1 /
+3 0 10 0 100 10.0.0.1 /swfobject.js
+3 0 10 0 100 10.0.0.1 /StrobeMediaPlayback.swf
+3 0 10 0 100 10.0.0.1 /StrobeMediaPlayback.swf
+3 0 10 0 100 10.0.0.1 /StrobeMediaPlayback.swf
+3 0 10 0 100 10.0.0.1 /StrobeMediaPlayback.swf
+3 0 10 0 100 10.0.0.1 /vod/big_buck_bunny_nolist.f4m
+3 0 10 0 100 10.0.0.1 /vod/1000Seg1-Frag1
+4 0 10 0 100 10.0.0.1 /vod/1000Seg1-Frag2
+4 0 10 0 100 10.0.0.1 /vod/1000Seg1-Frag3
+4 0 10 0 100 10.0.0.1 /vod/1000Seg1-Frag4
+5 0 10 0 100 10.0.0.1 /vod/1000Seg1-Frag5
+5 0 10 0 100 10.0.0.1 /vod/1000Seg1-Frag6
+5 0 10 0 100 10.0.0.1 /vod/1000Seg2-Frag7
+6 0 10 0 100 10.0.0.1 /vod/1000Seg2-Frag8
+6 0 10 0 100 10.0.0.1 /vod/1000Seg2-Frag9
+6 0 10 0 100 10.0.0.1 /vod/1000Seg2-Frag10

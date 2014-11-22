@@ -15,12 +15,15 @@
 #include "io.h"
 #include "media.h"
 #include "conn.h"
+#include "timer.h"
+#include "log.h"
+
 
 #define FLAG_VIDEO    0
 #define FLAG_LIST     1
 
 /* global variable */
- pool_t pool; 
+pool_t pool; 
 
 
 /* You won't lose style points for including these long lines in your code */
@@ -140,6 +143,7 @@ int main(int argc, char **argv) {
             serve_servers();
         }
     }
+    
     close_socket(listen_sock);
     return EXIT_SUCCESS;
 }
@@ -247,6 +251,7 @@ void client2server(int clit_idx)
     server = GET_SERV_BY_IDX(conn->serv_idx);
     serv_fd = server->fd;
 
+
     if (endsWith(path, ".f4m")) {
         flag = FLAG_LIST;
         strcpy(path_list, path);
@@ -278,8 +283,22 @@ void client2server(int clit_idx)
         printf("path = \"%s\"\n", path);
     }
     
+    /* loggin  last finished file*/
+    if(conn->last_time == NULL) { 
+        conn->last_time = (struct timeval*)malloc(sizeof(struct timeval));
+        gettimeofday(conn->last_time,NULL);
+    } else {
+        loggin(conn);
+    }
+
+    /* update current requested file */
+    strcpy(conn->cur_file,path);
+    conn->cur_file[strlen(conn->cur_file)] = '\0';
+    conn->cur_size = 0;
+    gettimeofday(conn->last_time,NULL);
+
 	/* Forward request */
-    modi_path(path,conn->thruput);
+    modi_path(path,conn->avg_put);
     sprintf(buf_internet, "GET %s HTTP/1.1\r\n", path);
     io_sendn(serv_fd, buf_internet, strlen(buf_internet));
 	sprintf(buf_internet, "Host: %s\r\n", host);
@@ -299,9 +318,8 @@ void client2server(int clit_idx)
 
 
     */    
-    /*
     if (flag == FLAG_VIDEO) {
-        new_thruput = update_thruput(sum, &start, p, &sa);
+        //new_thruput = update_thruput(sum, &start, p, &sa);
     } else if (flag == FLAG_LIST) {
         sprintf(buf_internet, "GET %s HTTP/1.1\r\n", path_list);
         io_sendn(serv_fd, buf_internet, strlen(buf_internet));
@@ -319,14 +337,14 @@ void client2server(int clit_idx)
         }
 
     }
-    */
 }
 
 void server2client(int serv_idx) {
     server_t* server;
     client_t* client;
     conn_t* conn;
-
+    struct timeval start;
+    struct timeval end;
     int server_fd;
     int client_fd;
     int conn_idx;
@@ -349,9 +367,10 @@ void server2client(int serv_idx) {
     client_fd = client->fd;
 
     /* Forward respond */
-    //gettimeofday(&start, NULL);
+    gettimeofday(&start, NULL);
     while ((n = io_recvn(server_fd, buf_internet, MAXBUF)) > 0) {
         sum += n;
+        conn->cur_size += n;
         DPRINTF("n=%d\n",n); 
         //fprintf(stderr, "recv looping fnished n=%d,sum=$d!!!\n",n);
         if(io_sendn(client_fd, buf_internet, n) == -1) {
@@ -360,7 +379,7 @@ void server2client(int serv_idx) {
         }
     }
     DPRINTF("finish transimit content!\n");
-    DPRINTF("Forward respond %zu bytes\n", sum); 
+    DPRINTF("Forward respond %zu bytes\n", sum);
 }
 
 

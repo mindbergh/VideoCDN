@@ -262,6 +262,8 @@ void client2server(int clit_idx)
         flag = FLAG_LIST;
         strcpy(path_list, path);
         strcpy(path + strlen(path) - 4, "_nolist.f4m");
+    } else if (isVideo(path)) {
+        printf("Curr thru: %d", conn->avg_put);
     }
     
     

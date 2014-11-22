@@ -44,7 +44,7 @@ conn_t* add_conn(client_t* client, server_t* server) {
 			new_conn->client = client;
 			new_conn->server = server;
 			new_conn->t_put = 0;
-			new_conn->agv_put = 0;
+			new_conn->avg_put = 0;
 			conn[i] = new_conn;
 			pool.cur_conn++;
 			return new_conn;

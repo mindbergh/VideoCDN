@@ -7,9 +7,10 @@
 #          Yao Zhou <yaozhou@cs.cmu.edu>                                       #
 # 																			   #
 ################################################################################
-CFLAGS = -Wall -g
+CFLAGS = -Wall -g -I/usr/include/libxml2 -lxml2
+LDFLAGS = -L -lxml2 -lm
 CC = gcc
-objects = pool.o io.o mydns.o proxy.o media.o conn.o timer.o log.o
+objects = pool.o io.o mydns.o proxy.o media.o conn.o parse_xml.o timer.o log.o
 
 default: proxy
 
@@ -24,11 +25,11 @@ io.o: io.c io.h
 mydns.o: mydns.c mydns.h
 media.o: media.c media.h
 conn.o: conn.c conn.h
+parse_xml.o: parse_xml.c parse_xml.h
 timer.o: timer.c timer.h
 log.o: log.c log.h
 
-
-%.o: %.c
+%.o: %.ce
 		$(CC) -c $(CFLAGS) -o $@ $<
 
 clean:
@@ -38,4 +39,4 @@ clobber: clean
 	rm -f proxy
 
 handin:
-	make clean; cd ..; tar cvf 15-441-project-3.tar 15-441-project-3 --exclude test
+	make clean; cd ..; tar cvf handin.tar handin --exclude test

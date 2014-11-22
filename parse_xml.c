@@ -22,6 +22,11 @@ bit_t* parse_xml(char* xml_buf, int length) {
 	while (cur != NULL) {
 		if ((!xmlStrcmp(cur->name,(const xmlChar*) "media"))) {
 			bitrate = parseMedia(doc,cur);
+			if (bitrate == -1) {
+				cur = cur->next;
+				continue;
+			}
+
 			if(head == NULL) {
 				head = (bit_t*)malloc(sizeof(bit_t));
 				head->bitrate = bitrate;
@@ -48,6 +53,8 @@ int parseMedia(xmlDocPtr doc, xmlNodePtr cur) {
 	xmlChar* birate;
 	int bit = 0;
 	birate = xmlGetProp(cur,"bitrate");
+	if (birate == NULL)
+		return -1;
 	bit = atoi((char*)birate);
 	//fprintf(stderr, "bitrate:%d\n",bit);
 	xmlFree(birate);

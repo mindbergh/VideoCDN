@@ -373,6 +373,7 @@ void server2client(int serv_idx) {
         this_bitrates = parse_xml(buf_internet, res.length);
 
         if (this_bitrates != NULL) {
+            DPRINTF("This is a listed XML\n");
             bitrates = this_bitrates;
             //free(buf_internet);
             //buf_internet = realloc(buf_internet, MAXLINE);
@@ -396,8 +397,20 @@ void server2client(int serv_idx) {
             free(buf_internet);
             return;
         }
+        DPRINTF("This is a non-listed XML\n");
+        n = io_sendn(client_fd, res.hdr_buf, res.hdr_len);  
+        if (n != res.hdr_len) {
+            DPRINTF("Unsuccessfully forward hdr:%d, n = %d, length should be %d\n", client_fd, n, res.hdr_len);
+            exit(EXIT_FAILURE);
+        }
+        n = io_sendn(client_fd, buf_internet, res.length);  
+        if (n != res.length) {
+            DPRINTF("Unsuccessfully forward nolist XML:%d, n = %d, length should be %d\n", client_fd, n, res.hdr_len);
+            exit(EXIT_FAILURE);
+        }
+        return;
     }
-    /* This is not a listed XML */
+    /* This is not a XML */
     n = io_sendn(client_fd, res.hdr_buf, res.hdr_len);  
     if (n != res.hdr_len) {
         DPRINTF("Unsuccessfully forward hdr:%d, n = %d, length should be %d\n", client_fd, n, res.hdr_len);
@@ -418,7 +431,7 @@ void server2client(int serv_idx) {
     }
      
     gettimeofday(&(conn->end), NULL);  /* update conn end time */
-    update_thruput(sum, &start, conn);    
+    update_thruput(n, &start, conn);    
     free(buf_internet);
     free(res.hdr_buf);
     res.hdr_buf = NULL;

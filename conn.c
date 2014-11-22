@@ -2,12 +2,6 @@
 #include "pool.h"
 #include "media.h"
 
-
-
-
-
-
-
 extern pool_t pool;
 
 
@@ -71,7 +65,8 @@ int add_conn(int clit_idx, int serv_idx) {
 			new_conn = (conn_t*)malloc(sizeof(conn_t));
 			new_conn->clit_idx = clit_idx;
 			new_conn->serv_idx = serv_idx;
-			new_conn->thruput = 0;
+			new_conn->t_put = 0;
+			new_conn->avg_put = 0;
 			conn[i] = new_conn;
 			pool.cur_conn++;
 
@@ -110,13 +105,14 @@ int update_thruput(size_t sum, struct timeval* start, conn_t* conn) {
 	double new_thruput = sum / elapsed;
 	float alpha = pool.alpha;
 	
-	curr_thruput = conn->thruput;
+	conn->t_put = (int)new_thruput;
+	curr_thruput = conn->avg_put;
 	
 	if (curr_thruput != -1) {
 		new_thruput = (int)(alpha * curr_thruput + (1 - alpha) * new_thruput);
 		
 	}
-	conn->thruput = (int)new_thruput;
+	conn->avg_put = (int)new_thruput;
 	
 	return (int)new_thruput; 
 }

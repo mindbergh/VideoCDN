@@ -15,12 +15,19 @@
 #include "io.h"
 #include "media.h"
 #include "conn.h"
+#include "timer.h"
+#include "log.h"
+
 
 #define FLAG_VIDEO    0
 #define FLAG_LIST     1
 
+#define TYPE_XML      1
+#define TYPE_F4F      2
+#define TYPE_MSC      0
+
 /* global variable */
- pool_t pool; 
+pool_t pool; 
 
 
 /* You won't lose style points for including these long lines in your code */
@@ -35,7 +42,7 @@ static const char *pxy_connection_hdr = "Proxy-Connection: Keep-Alive\r\n\r\n";
 int parse_uri(char *uri, char *host, int *port, char *path);
 void clienterror(int fd, char *cause, char *errnum, 
 		 char *shortmsg, char *longmsg);
-void read_requesthdrs(int);
+int read_requesthdrs(int);
 void serve_clients();
 void serve_servers();
 void client2server(int);
@@ -140,6 +147,7 @@ int main(int argc, char **argv) {
             serve_servers();
         }
     }
+    
     close_socket(listen_sock);
     return EXIT_SUCCESS;
 }
@@ -245,6 +253,7 @@ void client2server(int clit_idx)
     server = GET_SERV_BY_IDX(conn->serv_idx);
     serv_fd = server->fd;
 
+
     if (endsWith(path, ".f4m")) {
         flag = FLAG_LIST;
         strcpy(path_list, path);
@@ -269,9 +278,23 @@ void client2server(int clit_idx)
         printf("path = \"%s\"\n", path);
     }
     
+    /* loggin  last finished file*/
+    if(conn->start == NULL) { 
+        conn->start = (struct timeval*)malloc(sizeof(struct timeval));
+        gettimeofday(conn->start,NULL);
+    } else {
+        loggin(conn);
+    }
+    DPRINTF("log finished\n");
+    /* update current requested file */
+    strcpy(conn->cur_file,path);
+    conn->cur_file[strlen(conn->cur_file)] = '\0';
+    conn->cur_size = 0;
+    gettimeofday(conn->start,NULL);
+
 	/* Forward request */
-    modi_path(path, conn->thruput);
-    DPRINTF("PATH after modi_path: %s\n", path);
+
+    modi_path(path,conn->avg_put);
     sprintf(buf_internet, "GET %s HTTP/1.1\r\n", path);
     io_sendn(serv_fd, buf_internet, strlen(buf_internet));
 	sprintf(buf_internet, "Host: %s\r\n", host);
@@ -282,10 +305,10 @@ void client2server(int clit_idx)
     io_sendn(serv_fd, connection_hdr, strlen(connection_hdr));
     io_sendn(serv_fd, pxy_connection_hdr, strlen(pxy_connection_hdr));
 
-    
+    /*
     if (flag != FLAG_LIST) return;  // done with this, wait for nofication from select 
         //send pipelined request to serv
-        
+    
     if (flag == FLAG_LIST) {
         sprintf(buf_internet, "GET %s HTTP/1.1\r\n", path_list);
         io_sendn(serv_fd, buf_internet, strlen(buf_internet));
@@ -296,7 +319,7 @@ void client2server(int clit_idx)
         io_sendn(serv_fd, accept_encoding_hdr, strlen(accept_encoding_hdr));
         io_sendn(serv_fd, connection_hdr, strlen(connection_hdr));
         io_sendn(serv_fd, pxy_connection_hdr, strlen(pxy_connection_hdr));
-    }
+    } */
        
     /*
     if (flag == FLAG_VIDEO) {
@@ -308,15 +331,15 @@ void client2server(int clit_idx)
             // to do: parse xml
         }
 
-    }
-    */
+    } */
 }
 
 void server2client(int serv_idx) {
     server_t* server;
     client_t* client;
     conn_t* conn;
-
+    struct timeval start;
+    //struct timeval end;
     int server_fd;
     int client_fd;
     int conn_idx;
@@ -325,14 +348,13 @@ void server2client(int serv_idx) {
     size_t sum;
     char buf_internet[MAXBUF];
 
-    struct timeval start;
     
 
 
     server = GET_SERV_BY_IDX(serv_idx);
     server_fd = server->fd;
     /* get connection */
-    if( (conn_idx = server_get_conn(server_fd)) == -1) {
+    if ((conn_idx = server_get_conn(server_fd)) == -1) {
         DPRINTF("Cannot find connection from server to client! Error\n");
         exit(-1);
     }
@@ -344,6 +366,7 @@ void server2client(int serv_idx) {
     gettimeofday(&start, NULL);
     while ((n = io_recvn(server_fd, buf_internet, MAXBUF)) > 0) {
         sum += n;
+        conn->cur_size += n;
         DPRINTF("n=%d\n",n); 
         //fprintf(stderr, "recv looping fnished n=%d,sum=$d!!!\n",n);
         if(io_sendn(client_fd, buf_internet, n) == -1) {
@@ -351,7 +374,10 @@ void server2client(int serv_idx) {
             return;
         }
     }
-    update_thruput(sum, &start, conn);
+
+    gettimeofday(&(conn->end),NULL);  /* update conn end time */
+    update_thruput(sum, &start, conn);    
+    
     DPRINTF("finish transimit content!\n");
     DPRINTF("Forward respond %zu bytes\n", sum);
 }
@@ -451,6 +477,8 @@ int parse_uri(char *uri, char *host, int *port, char *path)
  * read_requesthdrs - read and parse HTTP request headers
  */
 /* $begin read_requesthdrs */
+
+
 void read_requesthdrs(int fd) {
     char buf[MAXLINE];
 
@@ -462,7 +490,101 @@ void read_requesthdrs(int fd) {
     }
     return;
 }
-/* $end read_requesthdrs */
+
+
+
+
+
+
+/** @brief 
+ *  @param 
+ *  @param
+ *  @return the type of the response
+ */
+int read_responeshdrs(int serv_fd, int clit_fd) {
+    int len = 0;
+    int i;
+    char *tmp;
+    char buf[MAXLINE];
+    char key[MAXLINE];
+    char value[MAXLINE];
+
+    char* tmp_buf;
+    int tmp_max_size = MAXLINE;
+    int tmp_cur_size = 0;
+    tmp_buf = (char *)malloc(MAXLINE);
+
+    int flag = TYPE_MSC;
+
+    DPRINTF("entering read request:%d\n", fd);
+
+    while (1) {
+        io_recvlineb(serv_fd, buf, MAXLINE);
+        len = strlen(buf);
+        
+
+        if (len == 0)
+            return 1;
+
+        if (buf[len - 1] != '\n') return -1;
+
+        DPRINTF("Receive line:\n%s", buf);
+
+        desirable_size = tmp_cur_size + len;
+        if (desirable_size > tmp_max_size) {
+            tmp_buf = realloc(tmp_buf, desirable_size);
+            tmp_max_size = desirable_size;
+        }
+        
+        strcmp(tmp_buf + cur_size, buf, len);
+        cur_size += len;
+
+        if (!strcmp(buf, "\r\n"))
+            break;
+        tmp = strchr(buf, ':');
+        if (NULL == tmp)
+            return -2;
+        *tmp = '\0';
+        strcpy(key, buf);
+        strcpy(value, tmp + 2);
+        value[strlen(value) - 2] = '\0';
+        DPRINTF("key = %s, value = %s\n", key, value);
+        *tmp = ':';
+        if (!strcmp(key, "Content-Type")) {
+            assert(flag == TYPE_MSC);
+            if (!strcmp(value, "text/xml")) {
+                flag = TYPE_XML;
+                continue;
+            }
+            if (!strcmp(value, "video/f4f")) {
+                flag = TYPE_F4F;
+                continue;   
+            }
+        }
+    }
+    DPRINTF("leaving read request\n");
+    return flag;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /*
  * clienterror - returns an error message to the client

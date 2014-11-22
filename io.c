@@ -50,7 +50,7 @@ ssize_t io_sendn(int fd, const char *ubuf, size_t n) {
  */
 ssize_t io_recvn(int fd, char *buf, size_t n) {
 	size_t res = 0;
-	ssize_t nread;
+	int nread;
 	size_t nleft = n;
 
 	while (nleft > 0 && (nread = recv(fd, buf + res, nleft, 0)) > 0) {
@@ -59,8 +59,8 @@ ssize_t io_recvn(int fd, char *buf, size_t n) {
 	}
 	if (nread == -1) {
 		if (errno == EAGAIN || errno == EWOULDBLOCK){
-			fprintf(stderr, "read entire buffer\n");
-			fprintf(stderr, "read:%d\n",res );
+			DPRINTF("read entire buffer\n");
+			DPRINTF("read:%d\n",res );
 			return res;
 		}
 		else {

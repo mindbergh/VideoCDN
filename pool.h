@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include "conn.h"
 #include "mydns.h"
+#include "debug.h"
 
 #define BUF_SIZE 8192 /* Initial buff size */
 #define MAXLINE  8192
@@ -27,6 +28,8 @@
 
 
 typedef struct pool_s {
+	FILE* log_file;
+	struct timeval start;
 	int maxfd;
 	int serv_sock;
 	float alpha;

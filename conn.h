@@ -4,9 +4,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-
 #define MAX_CONN 1024 /* The maximum num of connections */
-
+#define MAX_FILE_NAME 8192 /* The maximum length of file name */
 
 
 #define GET_CONN_BY_IDX(idx) (pool.conn_l[idx]);
@@ -28,7 +27,12 @@ typedef struct server_s {
 typedef struct conn_s {
 	int serv_idx;
 	int clit_idx;
-	int thruput; /* the current thruput */
+	int t_put; /* the current thruput */
+	int avg_put; /* current EWMA thruput estimate in Kbps */
+	char cur_file[MAX_FILE_NAME];
+	char cur_size;
+	struct timeval* start;
+	struct timeval end;
 } conn_t;
 
 int server_get_conn(int );

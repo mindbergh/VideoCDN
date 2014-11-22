@@ -171,7 +171,7 @@ void serve_clients() {
 
         client = client_l[i];
         if(FD_ISSET(client->fd, &(pool.ready_read))) {
-            DPRINTF("Client fd = %d, index = %d", client->fd, i);
+            DPRINTF("Client fd = %d, index = %d\n", client->fd, i);
             client2server(i);
             pool.nready--;
         }
@@ -237,8 +237,6 @@ void client2server(int clit_idx)
             serv_fd = open_server_socket(pool.fake_ip,pool.www_ip);
             serv_idx = add_server(serv_fd,sa.sin_addr.s_addr);
             conn_idx = add_conn(clit_idx, serv_idx);
-        } else {
-
         }
     } else {
         resolve(host, port, NULL, &servinfo);
@@ -253,21 +251,14 @@ void client2server(int clit_idx)
         strcpy(path + strlen(path) - 4, "_nolist.f4m");
 
         // to do, ask for listed f4m and get the options
-        // 
+        /* 
         if (!serv_get(&sa)) {
             serv_add(&sa);
-        }
-    } else if (0) {
+        } */
+    } else if (isVideo(path)) {
         // to do it asks for vedio
         flag = FLAG_VIDEO; // This is a chunk request
-        serv_info = serv_get(&sa);
-        assert(serv_info != NULL);
-
-        if (serv_info->thruput != -1) {
-            // set the request bit rate = serv_info->thruput
-        } else {
-            // set the lowest bit rate
-        }
+        
     }
     
     
@@ -279,7 +270,8 @@ void client2server(int clit_idx)
     }
     
 	/* Forward request */
-    modi_path(path,conn->thruput);
+    modi_path(path, conn->thruput);
+    DPRINTF("PATH after modi_path: %s\n", path);
     sprintf(buf_internet, "GET %s HTTP/1.1\r\n", path);
     io_sendn(serv_fd, buf_internet, strlen(buf_internet));
 	sprintf(buf_internet, "Host: %s\r\n", host);
@@ -290,19 +282,11 @@ void client2server(int clit_idx)
     io_sendn(serv_fd, connection_hdr, strlen(connection_hdr));
     io_sendn(serv_fd, pxy_connection_hdr, strlen(pxy_connection_hdr));
 
-    /* Ming:
-        add_server(serv_fd, i, p);
     
-        if (flag != FLAG_LIST) return;  // done with this, wait for nofication from select 
-        send pipelined request to serv
+    if (flag != FLAG_LIST) return;  // done with this, wait for nofication from select 
+        //send pipelined request to serv
         
-
-
-    */    
-    /*
-    if (flag == FLAG_VIDEO) {
-        new_thruput = update_thruput(sum, &start, p, &sa);
-    } else if (flag == FLAG_LIST) {
+    if (flag == FLAG_LIST) {
         sprintf(buf_internet, "GET %s HTTP/1.1\r\n", path_list);
         io_sendn(serv_fd, buf_internet, strlen(buf_internet));
         sprintf(buf_internet, "Host: %s\r\n", host);
@@ -312,6 +296,12 @@ void client2server(int clit_idx)
         io_sendn(serv_fd, accept_encoding_hdr, strlen(accept_encoding_hdr));
         io_sendn(serv_fd, connection_hdr, strlen(connection_hdr));
         io_sendn(serv_fd, pxy_connection_hdr, strlen(pxy_connection_hdr));
+    }
+       
+    /*
+    if (flag == FLAG_VIDEO) {
+        new_thruput = update_thruput(sum, &start, p, &sa);
+    } else 
 
         while ((n = io_recvn(serv_fd, buf_internet, MAXLINE)) > 0) {
             sum += n; 
@@ -334,6 +324,8 @@ void server2client(int serv_idx) {
     int n;
     size_t sum;
     char buf_internet[MAXBUF];
+
+    struct timeval start;
     
 
 
@@ -349,7 +341,7 @@ void server2client(int serv_idx) {
     client_fd = client->fd;
 
     /* Forward respond */
-    //gettimeofday(&start, NULL);
+    gettimeofday(&start, NULL);
     while ((n = io_recvn(server_fd, buf_internet, MAXBUF)) > 0) {
         sum += n;
         DPRINTF("n=%d\n",n); 
@@ -359,8 +351,9 @@ void server2client(int serv_idx) {
             return;
         }
     }
+    update_thruput(sum, &start, conn);
     DPRINTF("finish transimit content!\n");
-    DPRINTF("Forward respond %zu bytes\n", sum); 
+    DPRINTF("Forward respond %zu bytes\n", sum);
 }
 
 

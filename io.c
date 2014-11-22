@@ -69,8 +69,7 @@ ssize_t io_recvn(int fd, char *buf, size_t n) {
 		}
 	}
 	if (nread == 0) {
-		exit(0);
-		DPRINTF("recv error on0 %s\n", strerror(errno));
+		DPRINTF("recv error on 0\n");
 		return -1;
 	}
 

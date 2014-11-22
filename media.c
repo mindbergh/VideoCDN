@@ -112,13 +112,21 @@ void modi_path(char* path, int thruput) {
 	seg_index = strstr(path,"Seg");
 
 	/* check if need to modify bitrate in uri */
-	if( seg_index != NULL) {
+	if (seg_index != NULL) {
 		fprintf(stderr, "old path:%s\n",path );
 		strncpy(buffer,path,vod_index-path+5);
-		strcat(buffer,"100");
+		strcat(buffer,"10");
 		strcat(buffer,seg_index);
 		memset(path,0,MAXLINE);
 		strcpy(path,buffer);
 		fprintf(stderr, "new path:%s\n",path );
 	} 
+}
+
+int isVedio(char *path) {
+	if (strstr(path, "Seg") != NULL && strstr(path, "Frag") != NULL) {
+		return 1;
+	} else {
+		return 0;
+	}
 }

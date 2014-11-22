@@ -104,25 +104,19 @@ void close_conn(int conn_idx) {
 
 
 
-int update_thruput(size_t sum, struct timeval* start, 
-	conn_t* conn) {
+int update_thruput(size_t sum, struct timeval* start, conn_t* conn) {
 	int curr_thruput;
 	double elapsed = get_time_diff(start);
 	double new_thruput = sum / elapsed;
 	float alpha = pool.alpha;
-	serv_list_t *serv_info;
-	/*
-	serv_info = serv_get(conn->server->addr);
-	if (serv_info == NULL) {
-		serv_info = serv_add(addr);
-		curr_thruput = serv_info->thruput;
-	}
-
+	
+	curr_thruput = conn->thruput;
+	
 	if (curr_thruput != -1) {
 		new_thruput = (int)(alpha * curr_thruput + (1 - alpha) * new_thruput);
 		
 	}
 	conn->thruput = (int)new_thruput;
-	*/
+	
 	return (int)new_thruput; 
 }

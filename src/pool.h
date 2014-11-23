@@ -53,7 +53,7 @@ typedef struct pool_s {
 
 void init_pool(int, pool_t *,char**);
 int open_listen_socket(int);
-int open_server_socket(char *, char *);
+int open_server_socket(char *, char *, int);
 int add_client(int sock, uint32_t addr);
 int add_server(int sock, uint32_t addr);
 void close_clit(int clit_idx);

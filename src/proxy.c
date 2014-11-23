@@ -247,7 +247,7 @@ void client2server(int clit_idx)
     if (pool.www_ip) {
         inet_pton(AF_INET, pool.www_ip, &(sa.sin_addr));
         if((conn_idx = client_get_conn(fd, sa.sin_addr.s_addr)) == -1) {
-            serv_fd = open_server_socket(pool.fake_ip,pool.www_ip);
+            serv_fd = open_server_socket(pool.fake_ip,pool.www_ip,port);
             serv_idx = add_server(serv_fd,sa.sin_addr.s_addr);
             conn_idx = add_conn(clit_idx, serv_idx);
         }

@@ -5,7 +5,7 @@
 serv_list_t *serv_list;
 
 
-double get_time_diff(struct timeval* start);
+//double get_time_diff(struct timeval* start);
 
 
 /** detecting whether base is ends with str

@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+
 #define MAX_CONN 1024 /* The maximum num of connections */
 #define MAX_FILE_NAME 8192 /* The maximum length of file name */
 
@@ -22,7 +23,6 @@ typedef struct server_s {
 	unsigned int cur_size; /* current used size of this buf */
     unsigned int size;     /* whole size of this buf */ 
 	uint32_t addr;
-
 } server_t;
 
 typedef struct conn_s {
@@ -48,12 +48,6 @@ int server_get_conn(int );
 int client_get_conn(int ,uint32_t);
 int add_conn(int, int);
 void close_conn(int);
-int update_thruput(size_t, struct timeval*, conn_t*);
-
-/** @brief Close given connection
- *  @param p the Pool struct
- *         i the ith connection in the pool
- *  @return Void
- */
+int update_thruput(int, struct timeval*, conn_t*);
 
 #endif

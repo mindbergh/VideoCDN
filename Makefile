@@ -33,7 +33,7 @@ log.o: log.c log.h
 		$(CC) -c $(CFLAGS) -o $@ $<
 
 clean:
-	rm -f proxy.o pool.o
+	rm -f *.o
 
 clobber: clean
 	rm -f proxy

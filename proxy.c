@@ -263,7 +263,7 @@ void client2server(int clit_idx)
         strcpy(path_list, path);
         strcpy(path + strlen(path) - 4, "_nolist.f4m");
     } else if (isVideo(path)) {
-        printf("Curr thru: %d", conn->avg_put);
+        printf("Idx:%d ;; Curr thru: %d\n",conn_idx, conn->avg_put);
     }
     
     
@@ -433,7 +433,8 @@ void server2client(int serv_idx) {
     }
      
     gettimeofday(&(conn->end), NULL);  /* update conn end time */
-    update_thruput(n, &start, conn);    
+    if (res.type == TYPE_F4F)
+        update_thruput(n, conn->start, conn);    
     free(buf_internet);
     free(res.hdr_buf);
     res.hdr_buf = NULL;

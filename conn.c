@@ -1,6 +1,9 @@
 #include "conn.h"
 #include "pool.h"
 #include "media.h"
+#include "timer.h"
+
+
 
 extern pool_t pool;
 
@@ -95,20 +98,22 @@ void close_conn(int conn_idx) {
 }; 
 
 
-
-
-
-
-int update_thruput(size_t sum, struct timeval* start, conn_t* conn) {
+/* Thruput is in kbps */
+int update_thruput(int sum, struct timeval* start, conn_t* conn) {
+	assert(sum > 0);
 	int curr_thruput;
-	double elapsed = get_time_diff(start);
-	double new_thruput = sum / elapsed;
+	double elapsed = 0.0;
+
+	double new_thruput;
 	float alpha = pool.alpha;
 	
+	elapsed = get_time_diff(start);
+	DPRINTF("elapsed = %f", elapsed);
+	new_thruput = ((sum / 1000 * 8)) / elapsed;
 	conn->t_put = (int)new_thruput;
 	curr_thruput = conn->avg_put;
-	
-	if (curr_thruput != -1) {
+	DPRINTF("Old:%d, New:%d", curr_thruput, new_thruput);
+	if (curr_thruput != 0) {
 		new_thruput = (int)(alpha * curr_thruput + (1 - alpha) * new_thruput);
 		
 	}

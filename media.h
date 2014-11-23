@@ -7,6 +7,8 @@
 #include <sys/types.h>
 #include <string.h>
 #include <netinet/in.h>
+#include "debug.h"
+#include <string.h>
 #include "pool.h"
 
 

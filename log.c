@@ -8,13 +8,16 @@ void loggin(conn_t* conn) {
 	double secs = get_elapsed(conn->start,&(conn->end));
 	FILE* logfile = pool.log_file;
 	server_t* server = pool.server_l[conn->serv_idx];
+	
+	struct in_addr ip_addr;
+    ip_addr.s_addr = server->addr;
 
 	fprintf(logfile, "%d ", elapsed);
 	fprintf(logfile, "%lf ", secs);
 	fprintf(logfile, "%d ", conn->t_put);
 	fprintf(logfile, "%d ", conn->avg_put);
-	fprintf(logfile, "%d ", 100);
-	fprintf(logfile, "%s ", "1.1.1.1");
+	fprintf(logfile, "%d ", conn->cur_bitrate);
+	fprintf(logfile, "%s ", inet_ntoa(ip_addr));
 	fprintf(logfile, "%s\n", conn->cur_file );
 
 	fflush(pool.log_file);

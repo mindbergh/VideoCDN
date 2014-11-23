@@ -469,8 +469,7 @@ void server2client(int serv_idx) {
         return;
     }
     
-    if (res.type == TYPE_F4F)
-        update_thruput(n, conn); 
+    update_thruput(n, conn); 
         
     free(buf_internet);
     free(res.hdr_buf);

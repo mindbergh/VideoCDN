@@ -89,7 +89,7 @@ int open_listen_socket(int port) {
 }
 
 
-int open_server_socket(char *fake_ip, char *www_ip) {
+int open_server_socket(char *fake_ip, char *www_ip, int port) {
     int serverfd;
     struct addrinfo *result = NULL;
     struct sockaddr_in fake_addr;
@@ -116,7 +116,7 @@ int open_server_socket(char *fake_ip, char *www_ip) {
 
     if (www_ip == NULL) {
         // server ip is not specified, ask DNS
-        rc = resolve(VIDEO_SERVER_ADDR, VIDEO_SERVER_PORT, NULL, &result);
+        rc = resolve(VIDEO_SERVER_ADDR, port, NULL, &result);
         if (rc < 0) {
             // handle error
             DPRINTF("Resolve error!\n");
@@ -129,7 +129,7 @@ int open_server_socket(char *fake_ip, char *www_ip) {
         memset(&serv_addr, '0', sizeof(serv_addr));
         serv_addr.sin_family = AF_INET; 
         inet_pton(AF_INET, www_ip, &(serv_addr.sin_addr));
-        serv_addr.sin_port = htons(8080);
+        serv_addr.sin_port = htons(port);
         rc = connect(serverfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
     }
     if (rc < 0) {

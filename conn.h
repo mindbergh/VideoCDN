@@ -30,6 +30,7 @@ typedef struct conn_s {
 	int clit_idx;
 	int t_put; /* the current thruput */
 	int avg_put; /* current EWMA thruput estimate in Kbps */
+	int cur_bitrate;
 	char cur_file[MAX_FILE_NAME];
 	char cur_size;
 	struct timeval* start;

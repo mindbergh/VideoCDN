@@ -70,7 +70,9 @@ int add_conn(int clit_idx, int serv_idx) {
 			new_conn->serv_idx = serv_idx;
 			new_conn->t_put = 0;
 			new_conn->avg_put = 0;
+			new_conn->cur_bitrate = 0;
 			conn[i] = new_conn;
+
 			pool.cur_conn++;
 
 			if (i > pool.max_conn_idx) {

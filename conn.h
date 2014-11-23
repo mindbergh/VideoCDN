@@ -16,6 +16,7 @@ typedef struct client_s {
     unsigned int cur_size; /* current used size of this buf */
     unsigned int size;     /* whole size of this buf */
     uint32_t addr;
+    int num_serv;
 } client_t;
 
 typedef struct server_s {
@@ -23,6 +24,7 @@ typedef struct server_s {
 	unsigned int cur_size; /* current used size of this buf */
     unsigned int size;     /* whole size of this buf */ 
 	uint32_t addr;
+	int num_clit;
 } server_t;
 
 typedef struct conn_s {

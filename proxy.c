@@ -373,7 +373,9 @@ void server2client(int serv_idx) {
     /* get connection */
     if ((conn_idx = server_get_conn(server_fd)) == -1) {
         DPRINTF("Cannot find connection from server to client! Error\n");
-        exit(-1);
+        close_conn(conn_idx);
+        return;
+        //exit(-1);
     }
     conn = GET_CONN_BY_IDX(conn_idx);
     client = GET_CLIT_BY_IDX(conn->clit_idx);
@@ -386,7 +388,9 @@ void server2client(int serv_idx) {
         n = io_recvn_block(server_fd, buf_internet, res.length);
         if (n != res.length) {
             DPRINTF("Unsuccessfully recv XML from server:%d, n = %d, length should be %d\n", server_fd, n, res.length);
-            exit(EXIT_FAILURE);
+            close_conn(conn_idx);
+            return;
+            //exit(EXIT_FAILURE);
         }
         DPRINTF("Successfully recv XML from server:%d, n = %d\n", server_fd, n);
         buf_internet[res.length] = '\0';
@@ -422,12 +426,16 @@ void server2client(int serv_idx) {
         n = io_sendn(client_fd, res.hdr_buf, res.hdr_len);  
         if (n != res.hdr_len) {
             DPRINTF("Unsuccessfully forward hdr:%d, n = %d, length should be %d\n", client_fd, n, res.hdr_len);
-            exit(EXIT_FAILURE);
+            close_conn(conn_idx);
+            return;
+            //exit(EXIT_FAILURE);
         }
         n = io_sendn(client_fd, buf_internet, res.length);  
         if (n != res.length) {
             DPRINTF("Unsuccessfully forward nolist XML:%d, n = %d, length should be %d\n", client_fd, n, res.hdr_len);
-            exit(EXIT_FAILURE);
+            close_conn(conn_idx);
+            return;
+            //exit(EXIT_FAILURE);
         }
         return;
     }
@@ -435,7 +443,9 @@ void server2client(int serv_idx) {
     n = io_sendn(client_fd, res.hdr_buf, res.hdr_len);  
     if (n != res.hdr_len) {
         DPRINTF("Unsuccessfully forward hdr:%d, n = %d, length should be %d\n", client_fd, n, res.hdr_len);
-        exit(EXIT_FAILURE);
+        close_conn(conn_idx);
+        return;
+        //exit(EXIT_FAILURE);
     }
     /* Forward respond */
     gettimeofday(&start, NULL);
@@ -569,9 +579,6 @@ void read_requesthdrs(int fd) {
     }
     return;
 }
-
-
-
 
 
 

@@ -61,6 +61,10 @@ int add_conn(int clit_idx, int serv_idx) {
 	conn_t* new_conn;
 	conn_t** conn = pool.conn_l;
 	int i = 0;
+	server_t *serv = GET_SERV_BY_IDX(serv_idx);
+	client_t *clit = GET_CLIT_BY_IDX(clit_idx);
+	serv->num_clit++;
+	clit->num_serv++;
 
 	/* find the first available slot to add new connection */
 	for (i = 0; i < FD_SETSIZE; i++) {
@@ -94,8 +98,20 @@ int add_conn(int clit_idx, int serv_idx) {
 void close_conn(int conn_idx) {
     //to do
     conn_t* del_conn= GET_CONN_BY_IDX(conn_idx);
-    close_clit(del_conn->clit_idx);
-    close_serv(del_conn->serv_idx);
+    int serv_idx = del_conn->serv_idx;
+    int clit_idx = del_conn->clit_idx;
+   	server_t *serv = GET_SERV_BY_IDX(serv_idx);
+	client_t *clit = GET_CLIT_BY_IDX(clit_idx);
+	assert(serv->num_clit > 0);
+	assert(clit->num_serv > 0);
+	serv->num_clit--;
+	clit->num_serv--;
+
+	if (serv->num_clit == 0)
+    	close_serv(del_conn->serv_idx);
+    if (clit->num_serv == 0)
+    	close_clit(del_conn->clit_idx);
+    free(del_conn);
     pool.conn_l[conn_idx] = NULL;
     pool.cur_conn--;
 }; 

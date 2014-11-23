@@ -165,7 +165,7 @@ int add_client(int conn_sock, uint32_t addr) {
             new_client->size = BUF_SIZE;
             new_client->fd = conn_sock;
             new_client->addr = addr;
-
+            new_client->num_serv = 0;
             client_l[i] = new_client;
             pool.cur_client++;
 
@@ -199,7 +199,7 @@ int add_server(int sock, uint32_t addr) {
             new_server->addr = addr;
             new_server->cur_size = 0;
             new_server->size = MAXBUF;
-
+            new_server->num_clit = 0;
             serv_l[i] = new_server;
             pool.cur_server++;
             
@@ -225,6 +225,7 @@ int add_server(int sock, uint32_t addr) {
 void close_clit(int clit_idx) {
     client_t *client = GET_CLIT_BY_IDX(clit_idx);
     close_socket(client->fd);
+    FD_CLR(client->fd, &(pool.read_set));
     free(client);
     GET_CLIT_BY_IDX(clit_idx) = NULL;    
     pool.cur_client--;
@@ -233,6 +234,7 @@ void close_clit(int clit_idx) {
 void close_serv(int serv_idx) {
     client_t *server = GET_CLIT_BY_IDX(serv_idx);
     close_socket(server->fd);
+    FD_CLR(server->fd, &(pool.read_set));
     free(server);
     GET_CLIT_BY_IDX(serv_idx) = NULL;
     pool.cur_server--;    

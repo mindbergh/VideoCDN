@@ -140,3 +140,38 @@ ssize_t io_recvlineb(int fd, void *usrbuf, size_t maxlen) {
 }
 
 
+/** @brief Recv a line from a socket or ssl
+ *	@param fd the fd to read from
+ *  @param ubuf the buf to store things
+ *	@param n the max number of bytes to read
+ *  @return -1 on error
+ *	@return 0 on EOF
+ *  @return the number of bytes read
+ */
+ssize_t io_recvline_block(int fd, void *usrbuf, size_t maxlen) {
+    int n, rc;
+    char c, *bufp = usrbuf;
+
+    for (n = 1; n < maxlen; n++) { 
+		if ((rc = recv(fd, &c, 1, 0)) == 1) {
+		    *bufp++ = c;
+		    if (c == '\n')
+			break;
+		} else if (rc == 0) {
+			DPRINTF("recv hdr = 0!\n");	
+		    if (n == 1)
+				return 0; /* EOF, no data read */
+		    else
+				return n; /* EOF, some data was read */
+		} else {
+			if (errno == EWOULDBLOCK || errno == EAGAIN) {
+				DPRINTF("read entire buffer once");
+				continue;
+			}
+			DPRINTF("recv error on %s\n", strerror(errno));
+		    return -1;	  /* error */
+		}
+    }
+    *bufp = 0;
+    return n;
+}

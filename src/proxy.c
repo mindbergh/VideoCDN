@@ -222,7 +222,8 @@ void client2server(int clit_idx)
 
 
     /* Read request line and headers */
-    io_recvlineb(fd, buf, MAXLINE);
+
+    io_recvline_block(fd, buf, MAXLINE);
 
     DPRINTF("Request: %s\n", buf);
 
@@ -235,9 +236,10 @@ void client2server(int clit_idx)
     if (strcasecmp(method, "GET")) { 
         DPRINTF("501 Not Implemented\n");
         clienterror(fd, method, "501", "Not Implemented",
-                "Ming does not implement this method");
+               "Ming does not implement this method");
         return;
     }
+    
 
     client_close = read_requesthdrs(fd, host, &port);
 
@@ -276,7 +278,8 @@ void client2server(int clit_idx)
         strcpy(path_list, path);
         strcpy(path + strlen(path) - 4, "_nolist.f4m");
     } else if (isVideo(path)) {
-        printf("Idx:%d ;; Curr thru: %d\n",conn_idx, conn->avg_put);
+        DPRINTF("This is video req: Idx:%d ;; Curr thru: %d\n",conn_idx, conn->avg_put);
+        DPRINTF("Path=%s\n", path);
         bit_t *b = bitrates;
         int chosen_rate = 0;
         int thru = conn->avg_put / 1.5;
@@ -510,7 +513,7 @@ int parse_uri(char *uri, char *host, int *port, char *path)
     tmp = strchr(ptr, ':');
     if (NULL == tmp) { 
     	DPRINTF("No scheme exists:%s\n",ptr);
-        (void)strncpy(path, ptr, strlen(ptr));    
+        strcpy(path, ptr);    
         return 1;   
     }
     
@@ -590,13 +593,13 @@ int parse_uri(char *uri, char *host, int *port, char *path)
 int read_requesthdrs(int fd, char *host, int* port) {
     char buf[MAXLINE];
     int size = 0;
-    size = io_recvlineb(fd, buf, MAXLINE);
+    size = io_recvline_block(fd, buf, MAXLINE);
     //if (strchr(buf,':') == NULL); return 0;
 
     DPRINTF("%s", buf);
     while(size < 8192 && strcmp(buf, "\r\n")) {
 
-        if( (size = io_recvlineb(fd, buf, MAXLINE)) == 0) return -1;
+        if( (size = io_recvline_block(fd, buf, MAXLINE)) == 0) return -1;
         DPRINTF("This hdr line:%s,fd:%d\n", buf,fd);
     }
     return 0;
@@ -619,7 +622,7 @@ int read_requesthdrs(int clit_fd, char *host, int* port) {
     DPRINTF("entering read req hdrs:%d\n", clit_fd);
 
     while (1) {
-        io_recvlineb(clit_fd, buf, MAXLINE);
+        io_recvline_block(clit_fd, buf, MAXLINE);
         len = strlen(buf);
         
 
@@ -694,7 +697,7 @@ void read_responeshdrs(int serv_fd, int clit_fd, response_t* res) {
     DPRINTF("entering read res hdrs:%d\n", serv_fd);
 
     while (1) {
-        io_recvlineb(serv_fd, buf, MAXLINE);
+        io_recvline_block(serv_fd, buf, MAXLINE);
         len = strlen(buf);
         
 

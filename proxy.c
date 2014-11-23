@@ -460,10 +460,15 @@ void server2client(int serv_idx) {
     }*/
 
     DPRINTF("Successfully recv body from server:%d, n = %d,len = %d\n", server_fd, n, res.length);
+    if (n == 0) {
+        close_conn(conn_idx);
+        return;
+    }
     if (io_sendn(client_fd, buf_internet, n) == -1) {
         close_conn(conn_idx);
         return;
     }
+    
     gettimeofday(&(conn->end), NULL);  /* update conn end time */
     if (res.type == TYPE_F4F)
         update_thruput(n, conn); 

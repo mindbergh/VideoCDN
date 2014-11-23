@@ -34,7 +34,7 @@ void init_pool(int listen_sock, pool_t *p, char** argv) {
         exit(-1);
     }
     pool.fake_ip = argv[4];
-    pool.alpha = -1;
+    sscanf(argv[2],"%f",&(pool.alpha));
     pool.cur_conn = 0;
     pool.cur_client = 0;
     pool.cur_server = 0;

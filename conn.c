@@ -99,7 +99,7 @@ void close_conn(int conn_idx) {
 
 
 /* Thruput is in kbps */
-int update_thruput(int sum, struct timeval* start, conn_t* conn) {
+int update_thruput(int sum, conn_t* conn) {
 	assert(sum > 0);
 	int curr_thruput;
 	double elapsed = 0.0;
@@ -107,17 +107,16 @@ int update_thruput(int sum, struct timeval* start, conn_t* conn) {
 	double new_thruput;
 	float alpha = pool.alpha;
 	
-	elapsed = get_time_diff(start);
-	DPRINTF("elapsed = %f", elapsed);
+	elapsed = get_elapsed(conn->start,&(conn->end));
+	DPRINTF("elapsed = %lf", elapsed);
 	new_thruput = ((sum / 1000 * 8)) / elapsed;
 	conn->t_put = (int)new_thruput;
 	curr_thruput = conn->avg_put;
-	DPRINTF("Old:%d, New:%f", curr_thruput, new_thruput);
+	DPRINTF(" Old:%d, New:%f, alpha:%f\n", curr_thruput, new_thruput,alpha);
 	if (curr_thruput != 0) {
-		new_thruput = (alpha * curr_thruput + (1 - alpha) * new_thruput);
-		
+		new_thruput = (alpha * curr_thruput + (1.0 - alpha) * new_thruput);
 	}
 	conn->avg_put = (int)new_thruput;
-	
+	DPRINTF(" New avg_put:%d\n", conn->avg_put);
 	return (int)new_thruput; 
 }

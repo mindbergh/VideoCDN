@@ -17,7 +17,7 @@ void loggin(conn_t* conn) {
 	fprintf(stderr, "duration:%lf ", secs);
 	fprintf(logfile, "%d ", 9952);
 	fprintf(logfile, "%d ", 9952);
-	fprintf(logfile, "%d ", 10);
+	fprintf(logfile, "%d ", 1500);
 	fprintf(logfile, "%s ", inet_ntoa(ip_addr));
 	fprintf(logfile, "%s\n", conn->cur_file );
 

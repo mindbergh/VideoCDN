@@ -473,11 +473,12 @@ void server2client(int serv_idx) {
         close_conn(conn_idx);
         return;
     }
-    if (io_sendn(client_fd, buf_internet, n) == -1) {
+    n = io_sendn(client_fd, buf_internet, res.length);
+    if (n == -1) {
         close_conn(conn_idx);
         return;
     }
-    
+    DPRINTF("Send %d bytes to clit %d, should be %d\n", n, client_fd, res.length);
     gettimeofday(&(conn->end), NULL);  /* update conn end time */
     if (res.type == TYPE_F4F)
         update_thruput(n, conn); 

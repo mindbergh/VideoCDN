@@ -226,11 +226,14 @@ void client2server(int clit_idx)
 
     DPRINTF("Request: %s\n", buf);
 
-    if (strcmp(buf, "") == 0)
+    if (strcmp(buf, "") == 0) {
+        DPRINTF("Empty buffer\n");
         return;
+    }
 
     sscanf(buf, "%s %s %s", method, uri, version);
     if (strcasecmp(method, "GET")) { 
+        DPRINTF("501 Not Implemented\n");
         clienterror(fd, method, "501", "Not Implemented",
                 "Ming does not implement this method");
         return;
@@ -240,6 +243,7 @@ void client2server(int clit_idx)
 
     /* Parse URI from GET request */
     if (!parse_uri(uri, host, &port, path)) {
+        DPRINTF("404 Not found\n");
 		clienterror(fd, uri, "404", "Not found",
 		              "Ming couldn't parse the request");
 		return;

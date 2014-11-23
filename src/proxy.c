@@ -314,9 +314,9 @@ void client2server(int clit_idx)
         conn->start = (struct timeval*)malloc(sizeof(struct timeval));
         gettimeofday(conn->start,NULL);
     } else {
+        fprintf(stderr, "logging finished!\n");
         loggin(conn);
     }
-    DPRINTF("log finished\n");
     /* update current requested file */
     strcpy(conn->cur_file,path);
     conn->cur_file[strlen(conn->cur_file)] = '\0';

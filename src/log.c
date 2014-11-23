@@ -14,6 +14,7 @@ void loggin(conn_t* conn) {
 
 	fprintf(logfile, "%d ", elapsed);
 	fprintf(logfile, "%lf ", secs);
+	fprintf(stderr, "duration:%lf ", secs);
 	fprintf(logfile, "%d ", conn->t_put);
 	fprintf(logfile, "%d ", conn->avg_put);
 	fprintf(logfile, "%d ", conn->cur_bitrate);

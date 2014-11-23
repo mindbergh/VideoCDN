@@ -136,8 +136,6 @@ ssize_t io_recvlineb(int fd, void *usrbuf, size_t maxlen) {
 		}
     }
     *bufp = 0;
-    DPRINTF("read buffer correctly,rc=%d\n",rc);
-    DPRINTF("bad bad bad :%s!!!\n",strerror(errno));
     return n;
 }
 

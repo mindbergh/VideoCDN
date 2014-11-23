@@ -249,7 +249,9 @@ void client2server(int clit_idx)
         if((conn_idx = client_get_conn(fd, sa.sin_addr.s_addr)) == -1) {
             serv_fd = open_server_socket(pool.fake_ip,pool.www_ip,port);
             serv_idx = add_server(serv_fd,sa.sin_addr.s_addr);
+            DPRINTF("new server:%d add!\n",serv_fd);
             conn_idx = add_conn(clit_idx, serv_idx);
+            DPRINTF("new connection:%d add!\n",conn_idx);
         }
     } else {
         resolve(host, port, NULL, &servinfo);
@@ -340,18 +342,6 @@ void client2server(int clit_idx)
         io_sendn(serv_fd, connection_hdr, strlen(connection_hdr));
         io_sendn(serv_fd, pxy_connection_hdr, strlen(pxy_connection_hdr));
     }
-       
-    /*
-    if (flag == FLAG_VIDEO) {
-        new_thruput = update_thruput(sum, &start, p, &sa);
-    } else 
-
-        while ((n = io_recvn(serv_fd, buf_internet, MAXLINE)) > 0) {
-            sum += n; 
-            // to do: parse xml
-        }
-
-    } */
 }
 
 void server2client(int serv_idx) {

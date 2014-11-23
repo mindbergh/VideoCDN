@@ -116,7 +116,7 @@ int open_server_socket(char *fake_ip, char *www_ip, int port) {
 
     if (www_ip == NULL) {
         // server ip is not specified, ask DNS
-        rc = resolve(VIDEO_SERVER_ADDR, VIDEO_SERVER_PORT, NULL, &result);
+        rc = resolve(VIDEO_SERVER_ADDR, port, NULL, &result);
         if (rc < 0) {
             // handle error
             DPRINTF("Resolve error!\n");

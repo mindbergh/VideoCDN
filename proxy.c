@@ -382,6 +382,10 @@ void server2client(int serv_idx) {
     client_fd = client->fd;
 
     read_responeshdrs(server_fd, client_fd, &res);
+    if (res.length == 0) {
+        close_conn(conn_idx);
+        return;
+    }
     buf_internet = (char *)malloc(res.length + 1);
     
     if (res.type == TYPE_XML) {
@@ -738,4 +742,4 @@ bit_t* process_list(int serv_fd, int length) {
     bitrates = parse_xml(buf, length);
     free(buf);
     return bitrates;
-}
+}   

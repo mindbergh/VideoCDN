@@ -68,6 +68,7 @@ int add_conn(int clit_idx, int serv_idx) {
 			new_conn = (conn_t*)malloc(sizeof(conn_t));
 			new_conn->clit_idx = clit_idx;
 			new_conn->serv_idx = serv_idx;
+			new_conn->start = NULL;
 			new_conn->t_put = 0;
 			new_conn->avg_put = 0;
 			new_conn->cur_bitrate = 0;

@@ -121,18 +121,23 @@ ssize_t io_recvlineb(int fd, void *usrbuf, size_t maxlen) {
 		    if (c == '\n')
 			break;
 		} else if (rc == 0) {
+			DPRINTF("recv hdr = 0!\n");	
 		    if (n == 1)
 				return 0; /* EOF, no data read */
 		    else
 				return n; /* EOF, some data was read */
 		} else {
-			if (errno == EWOULDBLOCK)
+			if (errno == EWOULDBLOCK || errno == EAGAIN) {
+				DPRINTF("read entire buffer once");
 				break;
-			DPRINTF("send error on %s\n", strerror(errno));
+			}
+			DPRINTF("recv error on %s\n", strerror(errno));
 		    return -1;	  /* error */
 		}
     }
     *bufp = 0;
+    DPRINTF("read buffer correctly,rc=%d\n",rc);
+    DPRINTF("bad bad bad :%s!!!\n",strerror(errno));
     return n;
 }
 

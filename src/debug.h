@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#define VERBOSE 1
+#define VERBOSE 0
 #define DPRINTF(fmt, args...) \
         do { if (VERBOSE) fprintf(stderr, fmt, ##args); } while(0)
 

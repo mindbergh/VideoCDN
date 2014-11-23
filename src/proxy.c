@@ -44,7 +44,7 @@ static const char *pxy_connection_hdr = "Proxy-Connection: Keep-Alive\r\n\r\n";
 int parse_uri(char *uri, char *host, int *port, char *path);
 void clienterror(int fd, char *cause, char *errnum, 
 		 char *shortmsg, char *longmsg);
-void read_requesthdrs(int);
+int read_requesthdrs(int);
 void read_responeshdrs(int serv_fd, int clit_fd, response_t* res);
 void serve_clients();
 void serve_servers();
@@ -132,7 +132,7 @@ int main(int argc, char **argv) {
             if ((client_sock = accept(listen_sock, 
                                       (struct sockaddr *) &cli_addr,
                                       &cli_size)) == -1) {
-                close(listen_sock);
+                close_socket(listen_sock);
                 DPRINTF("Error accepting connection.\n");
                 continue;
             }
@@ -215,6 +215,7 @@ void client2server(int clit_idx)
     struct timeval start;
     struct addrinfo *servinfo;
     int lagv = -1;
+    int client_close = 0;
     int new_thruput;
     serv_list_t *serv_info;
     struct sockaddr_in sa;
@@ -235,7 +236,7 @@ void client2server(int clit_idx)
         return;
     }
 
-    read_requesthdrs(fd);
+    client_close = read_requesthdrs(fd);
 
     /* Parse URI from GET request */
     if (!parse_uri(uri, host, &port, path)) {
@@ -254,6 +255,10 @@ void client2server(int clit_idx)
         resolve(host, port, NULL, &servinfo);
     }
     conn = GET_CONN_BY_IDX(conn_idx);
+    if (client_close == -1) {
+        close_conn(conn_idx);
+        return;
+    }
     server = GET_SERV_BY_IDX(conn->serv_idx);
     serv_fd = server->fd;
 
@@ -577,16 +582,19 @@ int parse_uri(char *uri, char *host, int *port, char *path)
 /* $begin read_requesthdrs */
 
 
-void read_requesthdrs(int fd) {
+int read_requesthdrs(int fd) {
     char buf[MAXLINE];
+    int size = 0;
+    size = io_recvlineb(fd, buf, MAXLINE);
+    //if (strchr(buf,':') == NULL); return 0;
 
-    io_recvlineb(fd, buf, MAXLINE);
     DPRINTF("%s", buf);
-    while(strcmp(buf, "\r\n")) {
-        io_recvlineb(fd, buf, MAXLINE);
-        DPRINTF("This hdr line:%s", buf);
+    while(size < 8192 && strcmp(buf, "\r\n")) {
+
+        if( (size = io_recvlineb(fd, buf, MAXLINE)) == 0) return -1;
+        DPRINTF("This hdr line:%s,fd:%d\n", buf,fd);
     }
-    return;
+    return 0;
 }
 
 
@@ -624,7 +632,7 @@ void read_responeshdrs(int serv_fd, int clit_fd, response_t* res) {
 
         if (buf[len - 1] != '\n') return -1;
 
-        DPRINTF("Receive line:\n%s", buf);
+        DPRINTF("Receive line:%s\n", buf);
 
         int desirable_size = tmp_cur_size + len;
         if (desirable_size > tmp_max_size) {

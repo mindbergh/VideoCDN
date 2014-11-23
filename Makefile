@@ -8,7 +8,7 @@
 # 																			   #
 ################################################################################
 CFLAGS = -Wall -g -I/usr/include/libxml2 -lxml2
-LDFLAGS = -lxml2 -lm
+LDFLAGS = -Llibs -lxml2 -lm
 CC = gcc
 objects = pool.o io.o mydns.o proxy.o media.o conn.o parse_xml.o timer.o log.o
 
@@ -33,7 +33,7 @@ log.o: log.c log.h
 		$(CC) -c $(CFLAGS) -o $@ $<
 
 clean:
-	rm -f *.o
+	rm -f 
 
 clobber: clean
 	rm -f proxy

@@ -1,6 +1,5 @@
 #include "media.h"
-#include "debug.h"
-#include <string.h>
+
 
 serv_list_t *serv_list;
 
@@ -95,7 +94,7 @@ void modi_path(char* path, int thruput) {
 	char buffer[MAXLINE] ={0};
 	char* vod_index = NULL;
 	char* seg_index = NULL;
-
+	char rate[32];
 	vod_index = strstr(path,"/vod/");
 	seg_index = strstr(path,"Seg");
 
@@ -103,7 +102,9 @@ void modi_path(char* path, int thruput) {
 	if (seg_index != NULL) {
 		fprintf(stderr, "old path:%s\n",path );
 		strncpy(buffer,path,vod_index-path+5);
-		strcat(buffer,"10");
+		
+		sprintf(rate, "%d", thruput);
+		strcat(buffer,rate);
 		strcat(buffer,seg_index);
 		memset(path,0,MAXLINE);
 		strcpy(path,buffer);

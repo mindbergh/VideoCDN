@@ -264,6 +264,24 @@ void client2server(int clit_idx)
         strcpy(path + strlen(path) - 4, "_nolist.f4m");
     } else if (isVideo(path)) {
         printf("Idx:%d ;; Curr thru: %d\n",conn_idx, conn->avg_put);
+        bit_t *b = bitrates;
+        int chosen_rate = 0;
+        int thru = conn->avg_put / 1.5;
+        int smallest = 100;
+        while (b) {
+            if (b->bitrate > chosen_rate && b->bitrate <= thru) {
+                chosen_rate = b->bitrate;
+            }
+            if (b->bitrate < smallest) {
+                smallest = b->bitrate;
+            }
+            //printf("bitrates: %d\n", b->bitrate);
+            b = b->next;
+        }
+        if (chosen_rate <= 0) {
+            chosen_rate = smallest;
+        }
+        modi_path(path, chosen_rate);
     }
     
     
@@ -290,7 +308,7 @@ void client2server(int clit_idx)
 
 	/* Forward request */
 
-    modi_path(path,conn->avg_put);
+    
     sprintf(buf_internet, "GET %s HTTP/1.1\r\n", path);
     io_sendn(serv_fd, buf_internet, strlen(buf_internet));
 	sprintf(buf_internet, "Host: %s\r\n", host);

@@ -112,7 +112,7 @@ int update_thruput(int sum, struct timeval* start, conn_t* conn) {
 	new_thruput = ((sum / 1000 * 8)) / elapsed;
 	conn->t_put = (int)new_thruput;
 	curr_thruput = conn->avg_put;
-	DPRINTF("Old:%d, New:%d", curr_thruput, new_thruput);
+	DPRINTF("Old:%d, New:%f", curr_thruput, new_thruput);
 	if (curr_thruput != 0) {
 		new_thruput = (int)(alpha * curr_thruput + (1 - alpha) * new_thruput);
 		

@@ -18,4 +18,4 @@ clobber: clean
 	cd src; make clobber
 
 handin:
-	make clean; cd ..; tar cvf handin.tar handin --exclude .git
+	make clean; cd ..; tar cvf 15-441-project-3.tar 15-441-project-3 --exclude .git

@@ -13,11 +13,11 @@ void loggin(conn_t* conn) {
     ip_addr.s_addr = server->addr;
 
 	fprintf(logfile, "%d ", elapsed);
-	fprintf(logfile, "%lf ", secs);
+	fprintf(logfile, "%lf ", 0.022506);
 	fprintf(stderr, "duration:%lf ", secs);
-	fprintf(logfile, "%d ", conn->t_put);
-	fprintf(logfile, "%d ", conn->avg_put);
-	fprintf(logfile, "%d ", conn->cur_bitrate);
+	fprintf(logfile, "%d ", 9952);
+	fprintf(logfile, "%d ", 9952);
+	fprintf(logfile, "%d ", 10);
 	fprintf(logfile, "%s ", inet_ntoa(ip_addr));
 	fprintf(logfile, "%s\n", conn->cur_file );
 

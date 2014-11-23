@@ -378,7 +378,7 @@ void server2client(int serv_idx) {
     response_t res;
     bit_t* this_bitrates;
     
-
+    fprintf(stderr, "server server!!!\n");
 
     server = GET_SERV_BY_IDX(serv_idx);
     server_fd = server->fd;

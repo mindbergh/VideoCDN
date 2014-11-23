@@ -48,6 +48,6 @@ int server_get_conn(int );
 int client_get_conn(int ,uint32_t);
 int add_conn(int, int);
 void close_conn(int);
-int update_thruput(int, struct timeval*, conn_t*);
+int update_thruput(int, conn_t*);
 
 #endif

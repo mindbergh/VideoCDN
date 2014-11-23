@@ -44,7 +44,7 @@ static const char *pxy_connection_hdr = "Proxy-Connection: Keep-Alive\r\n\r\n";
 int parse_uri(char *uri, char *host, int *port, char *path);
 void clienterror(int fd, char *cause, char *errnum, 
 		 char *shortmsg, char *longmsg);
-int read_requesthdrs(int);
+int read_requesthdrs(int clit_fd, char *host, int* port);
 void read_responeshdrs(int serv_fd, int clit_fd, response_t* res);
 void serve_clients();
 void serve_servers();
@@ -239,7 +239,7 @@ void client2server(int clit_idx)
         return;
     }
 
-    client_close = read_requesthdrs(fd);
+    client_close = read_requesthdrs(fd, host, &port);
 
     /* Parse URI from GET request */
     if (!parse_uri(uri, host, &port, path)) {
@@ -248,7 +248,7 @@ void client2server(int clit_idx)
 		              "Ming couldn't parse the request");
 		return;
     }
-    DPRINTF("www_ip:%s",pool.www_ip);
+    DPRINTF("www_ip:%s\n",pool.www_ip);
     if (pool.www_ip) {
         inet_pton(AF_INET, pool.www_ip, &(sa.sin_addr));
         DPRINTF("about to get conn\n");
@@ -271,7 +271,7 @@ void client2server(int clit_idx)
     serv_fd = server->fd;
 
     
-    if (endsWith(path, ".f4m")) {
+    if (endsWith(path, ".f4m") && !endsWith(path, "_nolist.f4m")) {
         flag = FLAG_LIST;
         strcpy(path_list, path);
         strcpy(path + strlen(path) - 4, "_nolist.f4m");
@@ -299,12 +299,12 @@ void client2server(int clit_idx)
     }
     
     
-	if (VERBOSE) {
-        printf("uri = \"%s\"\n", uri);
-        printf("host = \"%s\", ", host);
-        printf("port = \"%d\", ", port);
-        printf("path = \"%s\"\n", path);
-    }
+	
+    DPRINTF("uri = \"%s\"\n", uri);
+    DPRINTF("host = \"%s\", ", host);
+    DPRINTF("port = \"%d\", ", port);
+    DPRINTF("path = \"%s\"\n", path);
+
     
     /* loggin  last finished file*/
     if(conn->start == NULL) { 
@@ -334,10 +334,15 @@ void client2server(int clit_idx)
     io_sendn(serv_fd, pxy_connection_hdr, strlen(pxy_connection_hdr));
 
     
-    if (flag != FLAG_LIST) return;  // done with this, wait for nofication from select 
+    if (flag != FLAG_LIST) {
+        DPRINTF("This is no a f4m request, done\n");
+
+        return;  // done with this, wait for nofication from select 
         //send pipelined request to serv
-    
+    }
+
     if (flag == FLAG_LIST) {
+        DPRINTF("This is a f4m req, req for nolist\n");
         sprintf(buf_internet, "GET %s HTTP/1.1\r\n", path_list);
         io_sendn(serv_fd, buf_internet, strlen(buf_internet));
         sprintf(buf_internet, "Host: %s\r\n", host);
@@ -499,11 +504,15 @@ int parse_uri(char *uri, char *host, int *port, char *path)
     int i;
 
     ptr = uri;
-
+    DPRINTF("About to parse URI\n");
+    DPRINTF("URI: %s\n", uri);
     /* Read scheme */
     tmp = strchr(ptr, ':');
-    if (NULL == tmp) 
-    	return 0;   // Error.
+    if (NULL == tmp) { 
+    	DPRINTF("No scheme exists:%s\n",ptr);
+        (void)strncpy(path, ptr, strlen(ptr));    
+        return 1;   
+    }
     
     len = tmp - ptr;
     (void)strncpy(scheme, ptr, len);
@@ -577,8 +586,8 @@ int parse_uri(char *uri, char *host, int *port, char *path)
  */
 /* $begin read_requesthdrs */
 
-
-int read_requesthdrs(int fd) {
+/*
+int read_requesthdrs(int fd, char *host, int* port) {
     char buf[MAXLINE];
     int size = 0;
     size = io_recvlineb(fd, buf, MAXLINE);
@@ -591,9 +600,75 @@ int read_requesthdrs(int fd) {
         DPRINTF("This hdr line:%s,fd:%d\n", buf,fd);
     }
     return 0;
+}*/
+
+int read_requesthdrs(int clit_fd, char *host, int* port) {
+    int len = 0;
+    int i;
+    char *tmp;
+    char buf[MAXLINE];
+    char key[MAXLINE];
+    char value[MAXLINE];
+    char port_str[MAXLINE];
+    char* tmp_buf;
+    int tmp_max_size = MAXLINE;
+    int tmp_cur_size = 0;
+    tmp_buf = (char *)malloc(MAXLINE);
+    int host_flag = -1;
+
+    DPRINTF("entering read req hdrs:%d\n", clit_fd);
+
+    while (1) {
+        io_recvlineb(clit_fd, buf, MAXLINE);
+        len = strlen(buf);
+        
+
+        if (len == 0)
+            return 1;
+
+        if (buf[len - 1] != '\n') return -1;
+
+        DPRINTF("Receive line:%s\n", buf);
+
+        int desirable_size = tmp_cur_size + len;
+        if (desirable_size > tmp_max_size) {
+            tmp_buf = realloc(tmp_buf, desirable_size);
+            tmp_max_size = desirable_size;
+        }
+        
+        strncpy(tmp_buf + tmp_cur_size, buf, len);
+        tmp_cur_size += len;
+
+        if (!strcmp(buf, "\r\n"))
+            break;
+        tmp = strchr(buf, ':');
+        if (NULL == tmp)
+            continue;
+        *tmp = '\0';
+        strcpy(key, buf);
+        strcpy(value, tmp + 2);
+        value[strlen(value) - 2] = '\0';
+        DPRINTF("key = %s, value = %s\n", key, value);
+        *tmp = ':';
+        if (!strcmp(key, "Host")) {
+            host_flag = 1;
+            tmp = strchr(value, ':');
+            //assert(tmp != NULL);
+            if (tmp == NULL) {
+                DPRINTF("This host does not contain port, use 80 by default\n");
+                strcpy(host, value);
+                *port = 80;
+                continue;
+            }
+            *tmp = '\0';
+            strcpy(host, value);
+            strcpy(port_str, tmp + 1);
+            port_str[strlen(port_str)] = '\0';
+            *port = atoi(port_str); 
+        }
+    }
+    return host_flag;
 }
-
-
 
 /** @brief 
  *  @param 

@@ -283,6 +283,7 @@ void client2server(int clit_idx)
     strcpy(conn->cur_file,path);
     conn->cur_file[strlen(conn->cur_file)] = '\0';
     conn->cur_size = 0;
+    gettimeofday(&(conn->end),NULL);
     gettimeofday(conn->start,NULL);
 
     server = GET_SERV_BY_IDX(conn->serv_idx);

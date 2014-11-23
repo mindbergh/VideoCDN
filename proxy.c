@@ -431,10 +431,10 @@ void server2client(int serv_idx) {
         close_conn(conn_idx);
         return;
     }
-     
-    gettimeofday(&(conn->end), NULL);  /* update conn end time */
     if (res.type == TYPE_F4F)
-        update_thruput(n, conn->start, conn);    
+        update_thruput(n, &(conn->end), conn); 
+    gettimeofday(&(conn->end), NULL);  /* update conn end time */
+        
     free(buf_internet);
     free(res.hdr_buf);
     res.hdr_buf = NULL;

@@ -269,6 +269,23 @@ void client2server(int clit_idx)
         close_conn(conn_idx);
         return;
     }
+    
+    /* loggin  last finished file*/
+    if(conn->start == NULL) { 
+        conn->start = (struct timeval*)malloc(sizeof(struct timeval));
+        gettimeofday(conn->start,NULL);
+    } else {
+        fprintf(stderr, "logging finished!\n");
+        loggin(conn);
+    }
+
+    /* update current requested file */
+    strcpy(conn->cur_file,path);
+    conn->cur_file[strlen(conn->cur_file)] = '\0';
+    conn->cur_size = 0;
+    gettimeofday(&(conn->end),NULL);
+    gettimeofday(conn->start,NULL);
+
     server = GET_SERV_BY_IDX(conn->serv_idx);
     serv_fd = server->fd;
 
@@ -309,19 +326,6 @@ void client2server(int clit_idx)
     DPRINTF("path = \"%s\"\n", path);
 
     
-    /* loggin  last finished file*/
-    if(conn->start == NULL) { 
-        conn->start = (struct timeval*)malloc(sizeof(struct timeval));
-        gettimeofday(conn->start,NULL);
-    } else {
-        loggin(conn);
-    }
-    DPRINTF("log finished\n");
-    /* update current requested file */
-    strcpy(conn->cur_file,path);
-    conn->cur_file[strlen(conn->cur_file)] = '\0';
-    conn->cur_size = 0;
-    gettimeofday(conn->start,NULL);
 
 	/* Forward request */
 
@@ -375,7 +379,7 @@ void server2client(int serv_idx) {
     response_t res;
     bit_t* this_bitrates;
     
-
+    fprintf(stderr, "server server!!!\n");
 
     server = GET_SERV_BY_IDX(serv_idx);
     server_fd = server->fd;
@@ -387,6 +391,8 @@ void server2client(int serv_idx) {
         //exit(-1);
     }
     conn = GET_CONN_BY_IDX(conn_idx);
+    gettimeofday(&(conn->end), NULL);  /* update conn end time */
+    
     client = GET_CLIT_BY_IDX(conn->clit_idx);
     client_fd = client->fd;
 
@@ -417,21 +423,6 @@ void server2client(int serv_idx) {
             //buf_internet = realloc(buf_internet, MAXLINE);
             free(res.hdr_buf);
             res.hdr_buf = NULL;
-            //DPRINTF("About to requset for nolist f4m, with cur_file_name:%s\n", conn->cur_file_name);
-            /*
-            int path_len = strlen(conn->cur_file_name);
-            char *path_nolist = (char*)malloc(path_len + 8);
-            strcpy(path_nolist, conn->cur_file_name);
-            strcpy(path_nolist + path_len - 4, "_nolist.f4m");
-            sprintf(buf_internet, "GET %s HTTP/1.1\r\n", path_nolist);
-            io_sendn(serv_fd, buf_internet, strlen(buf_internet));
-            sprintf(buf_internet, "Host: %s\r\n", host);
-            io_sendn(serv_fd, buf_internet, strlen(buf_internet));
-            io_sendn(serv_fd, user_agent_hdr, strlen(user_agent_hdr));
-            io_sendn(serv_fd, accept_hdr, strlen(accept_hdr));
-            io_sendn(serv_fd, accept_encoding_hdr, strlen(accept_encoding_hdr));
-            io_sendn(serv_fd, connection_hdr, strlen(connection_hdr));
-            io_sendn(serv_fd, pxy_connection_hdr, strlen(pxy_connection_hdr)); */
             free(buf_internet);
             return;
         }
@@ -480,8 +471,7 @@ void server2client(int serv_idx) {
     }
     DPRINTF("Send %d bytes to clit %d, should be %d\n", n, client_fd, res.length);
     gettimeofday(&(conn->end), NULL);  /* update conn end time */
-    if (res.type == TYPE_F4F)
-        update_thruput(n, conn); 
+    update_thruput(n, conn); 
         
     free(buf_internet);
     free(res.hdr_buf);

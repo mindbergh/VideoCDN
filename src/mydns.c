@@ -118,9 +118,19 @@ void freeMyAddrinfo(struct addrinfo *addr) {
 }
 
 data_packet_t* q_pkt_maker(const char* node, const char* service, int* randnum) {
+	
 	data_packet_t* tmp = (data_packet_t*) malloc(sizeof(data_packet_t));
-	header_t* header = &(tmp->header);
-	char data[DATALEN];
+	tmp->header = (header_t*) malloc(sizeof(header_t));
+	tmp->query = (query_t*) malloc(sizeof(query_t));
+	tmp->query.qname = (unsigned char*)malloc(sizeof(unsigned char) * strlen(QUERY)+1);
+	tmp->query.question = (question_t*) malloc(sizeof(question_t));
+	tmp->response = NULL;
+
+	header_t* header = tmp->header;
+	query_t* query = tmp->query;
+	question_t* question = query->question;
+	unsigned char* name = query->qname;
+
 	// generate header
 	srand(time(NULL));
 	header->ID = (uint16_t)rand();
@@ -132,74 +142,49 @@ data_packet_t* q_pkt_maker(const char* node, const char* service, int* randnum) 
 	header->ARCOUNT = 0;
 
 	// generate data 
-	hex2binary(QUERY_HEX,strlen(QUERY_HEX),tmp->data);
+	convertName(name,QUERY);
 
+	// set up data attribute
+	question->qtype = 1
+	question->qclass = 1
+	
 	return tmp;
 }
 
-int parse_res(data_packet_t* pkt, struct addrinfo* tmp, int randnum) {
+int parse_res(data_packet_t* pkt, struct addrinfo* tmp, int random) {
 	char* ip;
-	char hex[DATALEN*2];
-	// check random number 
-	if (pkt->header.ID != randnum) 
-		return -1;
-	// check FLAG
-	if (pkt->header.FLAG != 33792)
-		return -1;
-	// check question num
-	if (pkt->header.QDCOUNT != 1)
-		return -1;
-	// check answer num
-	if (pkt->header.ANCOUNT != 1)
-		return -1;
-	// check NSCOUNT
-	if (pkt->header.NSCOUNT != 0)
-		return -1;
-	// check ARCOUNT
-	if (pkt->header.ARCOUNT != 0)
-		return -1;
-	// check question
-	if (memcmp(hex,RES_HEX,strlen(RES_HEX)) != 0) {
-		DPRINTF("Response doesn't match!\n");
-		return -1;
-	}
 	// get the last 4 bytes as ip
 	ip = (char*) pkt + 4*4+32*2;
 	((struct sockaddr_in*)&tmp->ai_addr)->sin_addr.s_addr = htonl(ip);
 	return 0;
 }
-
-
-/**
- * converts the binary char string str to ascii format. the length of 
- * ascii should be 2 times that of str
- */
-void binary2hex(uint8_t *buf, int len, char *hex) {
-	int i=0;
-	for(i=0;i<len;i++) {
-		sprintf(hex+(i*2), "%.2x", buf[i]);
-	}
-	hex[len*2] = 0;
-}
   
-/**
- *Ascii to hex conversion routine
- */
-static uint8_t _hex2binary(char hex)
-{
-     hex = toupper(hex);
-     uint8_t c = ((hex <= '9') ? (hex - '0') : (hex - ('A' - 0x0A)));
-     return c;
+void convertName(unsigned char* name, unsigned char* src) {
+	int dot = 0;
+	int i;
+	int length = strlen(src);
+	for(i=1; i < length; i++) {
+		if (src[i] == '.') {
+			name[dot] = (char)(i - dot -1);
+			dot = i;
+		} else {
+			name[i] = src[i];
+		}
+	}
+	name[strlen(src)] = '\0';
 }
 
-/**
- * converts the ascii character string in "ascii" to binary string in "buf"
- * the length of buf should be atleast len / 2
- */
-void hex2binary(char *hex, int len, uint8_t*buf) {
-	int i = 0;
-	for(i=0;i<len;i+=2) {
-		buf[i/2] = 	_hex2binary(hex[i]) << 4 
-				| _hex2binary(hex[i+1]);
-	}
+void pkt2buf(unsigned char* buf, data_packet_t* pkt) {
+	int index  = 0, length = 0;
+	
+	length = sizeof(header_t);
+	memcpy(buf+index,pkt->header,length);
+	
+	index += length;
+	length = strlen(pkt->query->qname)+1;
+	memcpy(buf+index,pkt->query->qname,length);
+
+	index += length;
+	length = sizeof(quesiton_t);
+	memcpy(buf+index,pkt->query->question,length);
 }

@@ -15,9 +15,9 @@
 #define DATALEN 34 // The longest data length for this proj
 #define BUFSIZE 8192
 
-static const char* QUERY_HEX = "00000101011101100110100101100100011001010110111100000010011000110111001100000011011000110110110101110101000000110110010101100100011101010000000000000000000000010000000000000001";
-static const char* RES_HEX = "00000101011101100110100101100100011001010110111100000010011000110111001100000011011000110110110101110101000000110110010101100100011101010000000000000000000000010000000000000001110000000000110000000000000000010000000000000001000000000000000000000000000000000000000000000100";
-static const char* ERR_HEX = "00000101011101100110100101100100011001010110111100000010011000110111001100000011011000110110110101110101000000110110010101100100011101010000000000000000000000010000000000000001";
+static const unsigned char* QUERY = ".video.cmu.edu";
+static const unsigned char* RES = "00000101011101100110100101100100011001010110111100000010011000110111001100000011011000110110110101110101000000110110010101100100011101010000000000000000000000010000000000000001110000000000110000000000000000010000000000000001000000000000000000000000000000000000000000000100";
+static const unsigned char* ERR = "00000101011101100110100101100100011001010110111100000010011000110111001100000011011000110110110101110101000000110110010101100100011101010000000000000000000000010000000000000001";
 
 /**
  *  The struct for DNS service on client side.
@@ -42,34 +42,35 @@ typedef struct dns_s{
  *			of resource records in the additional records section.
  */
 typedef struct header_s {
-    uint16_t ID;
-    uint16_t FLAG;
-    uint16_t QDCOUNT;
-    uint16_t ANCOUNT;
-    uint16_t NSCOUNT;
-    uint16_t ARCOUNT;
+    uint16_t id;
+    uint16_t flag;
+    uint16_t qdcount;
+    uint16_t ancount;
+    uint16_t nscount;
+    uint16_t arcount;
 } header_t; 
 
-typedef struct r_attr_s {
-    uint16_t TYPE;
-    uint16_t CLASS;
-    uint16_t TTL;
-    uint16_t RDLENGTH;
-} r_attr_t;
-
-typedef struct response_s {
-    unsigned char* NAME;
-    struct r_attr_t ATTR;
-    unsigned char* DATA;
-} response_t;
-
 typedef struct question_s {
-    uint16_t QTYPE;
-    uint16_t QCLASS;
+    uint16_t qtype;
+    uint16_t qclass;
 } question_t;
 
+typedef struct answer_s {
+    uint16_t atype;
+    uint16_t aclass;
+    uint16_t attl;
+    uint16_t ardlength;
+} answer_t;
+
+typedef struct response_s {
+    unsigned char* name;
+    struct answer_t* answer;
+    unsigned char* data;
+} response_t;
+
 typedef struct query_s {
-    unsigned char* QNAME;
+    unsigned char* qname;
+    struct question_t* question;
 } query_t;
 /**
  *  The struct for DNS packet.
@@ -77,8 +78,9 @@ typedef struct query_s {
  *  data - The content of dns pkt
  */
 typedef struct data_packet {
-    header_t header;
-    char question[DATALEN];
+    header_t* header;
+    query_t* query;
+    response_t* response;
 } data_packet_t;
 
 
@@ -141,24 +143,6 @@ data_packet_t* q_pkt_maker(const char* node, const char* service,int*);
  * @return 0 if the response is valid with correct result, -1 if query failed somehow
  */
 int parse_res(data_packet_t* pkt, struct addrinfo* tmp, int);
-
-
-
-/**
- * converts the binary char string str to ascii format. the length of 
- * ascii should be 2 times that of str
- */
-void binary2hex(uint8_t *buf, int len, char *hex);
-
-/**
- *Ascii to hex conversion routine
- */
-static uint8_t _hex2binary(char hex);
-
-/**
- * converts the ascii character string in "ascii" to binary string in "buf"
- * the length of buf should be atleast len / 2
- */
-void hex2binary(char *hex, int len, uint8_t*buf);
+void convertName(unsigned char* name, unsigned char* src);
 
 #endif

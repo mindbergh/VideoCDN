@@ -2,15 +2,16 @@
 # Makefile  																   #
 #                                 											   #
 # Description: This file contains the make rules for proxy                     #
-#                                                                              #
+#                                                                              #		
 # Authors: Ming Fang <mingf@cs.cmu.edu>                                        #
 #          Yao Zhou <yaozhou@cs.cmu.edu>                                       #
 # 																			   #
 ################################################################################
-CFLAGS = -Wall -g -Ilibxml2
+CFLAGS = -Wall -g -Ilibxml2 -I./
 LDFLAGS = -Llibs -lxml2 -lm
 CC = gcc
 objects = pool.o io.o mydns.o proxy.o media.o conn.o parse_xml.o timer.o log.o
+FMLIB = ./mlib/
 
 default: proxy
 
@@ -18,6 +19,9 @@ default: proxy
 
 proxy: $(objects)
 		$(CC) -o $@ $^ $(LDFLAGS)
+
+ospf: ospf.o
+		$(CC) -o $@ $^ $(FMLIB)mlib.a $(LDFLAGS) 
 
 proxy.o: proxy.c pool.h mydns.h debug.h io.h media.h conn.h timer.h log.h parse_xml.h
 pool.o: pool.c pool.h
@@ -36,7 +40,7 @@ clean:
 	rm -f *.o
 
 clobber: clean
-	rm -f proxy
+	rm -f proxy ospf
 
 handin:
 	make clean; cd ..; tar cvf handin.tar handin --exclude test

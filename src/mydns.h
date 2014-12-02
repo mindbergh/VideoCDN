@@ -12,7 +12,7 @@
 #include <netdb.h>
 #include "debug.h"
 
-#define DATALEN 38 // The longest data length for this proj
+#define DATALEN 34 // The longest data length for this proj
 #define BUFSIZE 8192
 
 static const char* QUERY_HEX = "05766964656F02637303636D75036564750000010001";

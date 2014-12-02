@@ -132,13 +132,14 @@ data_packet_t* q_pkt_maker(const char* node, const char* service, int* randnum) 
 	header->ARCOUNT = 0;
 
 	// generate data 
-	hex2binary(QUERY_HEX,strlen(QUERY_HEX),data);
+	hex2binary(QUERY_HEX,strlen(QUERY_HEX),tmp->data);
 
 	return tmp;
 }
 
 int parse_res(data_packet_t* pkt, struct addrinfo* tmp, int randnum) {
 	char* ip;
+	char hex[DATALEN*2];
 	// check random number 
 	if (pkt->header.ID != randnum) 
 		return -1;
@@ -158,12 +159,13 @@ int parse_res(data_packet_t* pkt, struct addrinfo* tmp, int randnum) {
 	if (pkt->header.ARCOUNT != 0)
 		return -1;
 	// check question
-	if (memcmp((char*)pkt+16,RES_HEX,strlen(RES_HEX)) != 0) {
+	binary2hex((char*)pkt+16,strlen((char*)pkt+16),hex);
+	if (memcmp(hex,RES_HEX,strlen(RES_HEX)) != 0) {
 		DPRINTF("Response doesn't match!\n");
 		return -1;
 	}
 	// get the last 4 bytes as ip
-	ip = (char*) pkt + 34;
+	ip = (char*) pkt + 4*4+32*2;
 	((struct sockaddr_in*)&tmp->ai_addr)->sin_addr.s_addr = htonl(ip);
 	return 0;
 }

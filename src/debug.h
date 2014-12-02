@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <stdio.h>
 
 #define VERBOSE 0
 #define DPRINTF(fmt, args...) \

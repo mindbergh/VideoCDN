@@ -1,9 +1,12 @@
 #include "log.h"
 #include <stdlib.h>
+#include <time.h>
 
 extern pool_t pool;
 
 void loggin(conn_t* conn) {
+	time_t since_epoch;
+	since_epoch = time(NULL);
 	int elapsed = (int)get_time_diff(&(pool.start));
 	double secs = get_elapsed(conn->start,&(conn->end));
 	FILE* logfile = pool.log_file;
@@ -12,7 +15,7 @@ void loggin(conn_t* conn) {
 	struct in_addr ip_addr;
     ip_addr.s_addr = server->addr;
 
-	fprintf(logfile, "%d ", elapsed);
+	fprintf(logfile, "%ld ", since_epoch);
 	fprintf(logfile, "%lf ", secs);
 	fprintf(stderr, "duration:%lf ", secs);
 	fprintf(logfile, "%d ", conn->t_put);

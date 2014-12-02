@@ -159,7 +159,6 @@ int parse_res(data_packet_t* pkt, struct addrinfo* tmp, int randnum) {
 	if (pkt->header.ARCOUNT != 0)
 		return -1;
 	// check question
-	binary2hex((char*)pkt+16,strlen((char*)pkt+16),hex);
 	if (memcmp(hex,RES_HEX,strlen(RES_HEX)) != 0) {
 		DPRINTF("Response doesn't match!\n");
 		return -1;

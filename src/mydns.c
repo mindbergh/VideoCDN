@@ -122,8 +122,8 @@ data_packet_t* q_pkt_maker(const char* node, const char* service, int* randnum) 
 	data_packet_t* tmp = (data_packet_t*) malloc(sizeof(data_packet_t));
 	tmp->header = (header_t*) malloc(sizeof(header_t));
 	tmp->query = (query_t*) malloc(sizeof(query_t));
-	tmp->query.qname = (unsigned char*)malloc(sizeof(unsigned char) * strlen(QUERY)+1);
-	tmp->query.question = (question_t*) malloc(sizeof(question_t));
+	tmp->query->qname = (unsigned char*)malloc(sizeof(unsigned char) * strlen(QUERY)+1);
+	tmp->query->question = (question_t*) malloc(sizeof(question_t));
 	tmp->response = NULL;
 
 	header_t* header = tmp->header;
@@ -133,20 +133,20 @@ data_packet_t* q_pkt_maker(const char* node, const char* service, int* randnum) 
 
 	// generate header
 	srand(time(NULL));
-	header->ID = (uint16_t)rand();
-	*randnum = header->ID;
-	header->FLAG = 0; // 0 0000 0 0 0 0 000 0000
-	header->QDCOUNT = 1;
-	header->ANCOUNT = 0;
-	header->NSCOUNT = 0;
-	header->ARCOUNT = 0;
+	header->id = (uint16_t)rand();
+	*randnum = header->id;
+	header->flag = 0; // 0 0000 0 0 0 0 000 0000
+	header->qdcount = 1;
+	header->ancount = 0;
+	header->nscount = 0;
+	header->arcount = 0;
 
 	// generate data 
 	convertName(name,QUERY);
 
 	// set up data attribute
-	question->qtype = 1
-	question->qclass = 1
+	question->qtype = 1;
+	question->qclass = 1;
 	
 	return tmp;
 }
@@ -185,6 +185,6 @@ void pkt2buf(unsigned char* buf, data_packet_t* pkt) {
 	memcpy(buf+index,pkt->query->qname,length);
 
 	index += length;
-	length = sizeof(quesiton_t);
+	length = sizeof(question_t);
 	memcpy(buf+index,pkt->query->question,length);
 }

@@ -32,7 +32,6 @@ pool_t pool;
 bit_t* bitrates;
 
 
-/* You won't lose style points for including these long lines in your code */
 static const char *user_agent_hdr = "User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:10.0.3) Gecko/20120305 Firefox/10.0.3\r\n";
 static const char *accept_hdr = "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n";
 static const char *accept_encoding_hdr = "Accept-Encoding: gzip,deflate,sdch\r\n";
@@ -266,6 +265,8 @@ void client2server(int clit_idx)
     }
     conn = GET_CONN_BY_IDX(conn_idx);
     if (client_close == -1) {
+        fprintf(stderr, "logging finished!\n");
+        loggin(conn);
         close_conn(conn_idx);
         return;
     }
@@ -471,6 +472,7 @@ void server2client(int serv_idx) {
     }
     DPRINTF("Send %d bytes to clit %d, should be %d\n", n, client_fd, res.length);
     gettimeofday(&(conn->end), NULL);  /* update conn end time */
+    
     update_thruput(n, conn); 
         
     free(buf_internet);

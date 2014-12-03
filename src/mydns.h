@@ -62,11 +62,11 @@ typedef struct answer_s {
     uint16_t ardlength;
 } answer_t;
 
-typedef struct response_s {
+typedef struct dns_response_s {
     unsigned char* name;
     struct answer_t* answer;
     unsigned char* data;
-} response_t;
+} dns_response_t;
 
 typedef struct query_s {
     unsigned char* qname;
@@ -80,7 +80,7 @@ typedef struct query_s {
 typedef struct data_packet {
     header_t* header;
     query_t* query;
-    response_t* response;
+    dns_response_t* response;
 } data_packet_t;
 
 

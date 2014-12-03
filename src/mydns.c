@@ -135,12 +135,22 @@ data_packet_t* q_pkt_maker(const char* node, const char* service, int* randnum) 
 	srand(time(NULL));
 	header->ID = (uint16_t)rand();
 	*randnum = header->ID;
-	header->FLAG = 0; // 0 0000 0 0 0 0 000 0000
-	header->QDCOUNT = 1;
-	header->ANCOUNT = 0;
-	header->NSCOUNT = 0;
-	header->ARCOUNT = 0;
+	//header->FLAG = 0; // 0 0000 0 0 0 0 000 0000
+	header->qr = 0;  // a query
+	header->opcode = 0;
+	header->aa = 0;  
+	header->tc = 0;  
+	header->rd = 0;   
+    
+    header->ra = 0;
+    header->z  = 0;
+    header->rcode = 0;   
 
+    header->qdcount = 1;
+    header->ancount = 0;
+    header->nscount = 0;
+    header->arcount = 0;
+	
 	// generate data 
 	convertName(name,QUERY);
 
@@ -153,9 +163,11 @@ data_packet_t* q_pkt_maker(const char* node, const char* service, int* randnum) 
 
 int parse_res(data_packet_t* pkt, struct addrinfo* tmp, int random) {
 	char* ip;
+	uint32_t* ip_int;
 	// get the last 4 bytes as ip
 	ip = (char*) pkt + 4*4+32*2;
-	((struct sockaddr_in*)&tmp->ai_addr)->sin_addr.s_addr = htonl(ip);
+	ip_int = (uint32_t*)ip;
+	((struct sockaddr_in*)&tmp->ai_addr)->sin_addr.s_addr = *ip_int;
 	return 0;
 }
   

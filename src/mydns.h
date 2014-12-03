@@ -32,8 +32,15 @@ typedef struct dns_s{
 
 /**
  *  The struct for DNS packet header.
- *  ID - A random 16 bits number
- *  FLAG - A sequence of numbers indicate different pkts
+ *  ID     - A random 16 bits number
+ *  QR     - 0 for query and 1 for response
+ *  Opcode - 0 for standard query
+ *  AA     - 0 for requests, 1 for response
+ *  TC     - 0
+ *  RD     - 0
+ *  RA     - 0
+ *  Z      - 0
+ *  Rcode  - 0 for no error, 3 for name error
  *  QDCOUNT - how many questions
  *  ANCOUNT - how many answers
  *  NSCOUNT - an unsigned 16 bit integer specifying the number 
@@ -43,12 +50,22 @@ typedef struct dns_s{
  */
 typedef struct header_s {
     uint16_t id;
-    uint16_t flag;
+
+    uint8_t rd :1;
+    uint8_t tc :1;  
+    uint8_t aa :1;  
+    uint8_t opcode :4; 
+    uint8_t qr :1;
+    
+    uint8_t rcode:4;
+    uint8_t z :3;
+    uint8_t ra :1;
+
     uint16_t qdcount;
     uint16_t ancount;
     uint16_t nscount;
     uint16_t arcount;
-} header_t; 
+} header_t;
 
 typedef struct question_s {
     uint16_t qtype;

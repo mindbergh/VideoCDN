@@ -263,10 +263,11 @@ void client2server(int clit_idx)
     } else {
         resolve(host, port, NULL, &servinfo);
     }
+    
     conn = GET_CONN_BY_IDX(conn_idx);
+
     if (client_close == -1) {
-        fprintf(stderr, "logging finished!\n");
-        loggin(conn);
+        DPRINTF("read_requesthdrs return error!!!\n");
         close_conn(conn_idx);
         return;
     }
@@ -473,8 +474,10 @@ void server2client(int serv_idx) {
     DPRINTF("Send %d bytes to clit %d, should be %d\n", n, client_fd, res.length);
     gettimeofday(&(conn->end), NULL);  /* update conn end time */
     
-    update_thruput(n, conn); 
-        
+    if(res.type == TYPE_F4F) {
+        update_thruput(n, conn); 
+    }
+    
     free(buf_internet);
     free(res.hdr_buf);
     res.hdr_buf = NULL;
@@ -619,10 +622,15 @@ int read_requesthdrs(int clit_fd, char *host, int* port) {
         len = strlen(buf);
         
 
-        if (len == 0)
+        if (len == 0) {
+            DPRINTF("read header with 0 len\n");
             return 1;
+        }
 
-        if (buf[len - 1] != '\n') return -1;
+        if (buf[len - 1] != '\n') {
+            DPRINTF("read header without \\n at end\n");
+            return -1;
+        }
 
         DPRINTF("Receive line:%s\n", buf);
 
@@ -647,6 +655,7 @@ int read_requesthdrs(int clit_fd, char *host, int* port) {
         DPRINTF("key = %s, value = %s\n", key, value);
         *tmp = ':';
         if (!strcmp(key, "Host")) {
+            DPRINTF("get host!\n");
             host_flag = 1;
             tmp = strchr(value, ':');
             //assert(tmp != NULL);

@@ -72,7 +72,6 @@ int add_conn(int clit_idx, int serv_idx) {
 			new_conn = (conn_t*)malloc(sizeof(conn_t));
 			new_conn->clit_idx = clit_idx;
 			new_conn->serv_idx = serv_idx;
-			new_conn->start = NULL;
 			new_conn->t_put = 0;
 			new_conn->avg_put = 0;
 			new_conn->cur_bitrate = 10; // The lowest bitrate
@@ -126,7 +125,7 @@ int update_thruput(int sum, conn_t* conn) {
 	double new_thruput;
 	float alpha = pool.alpha;
 	
-	elapsed = get_elapsed(conn->start,&(conn->end));
+	elapsed = get_elapsed(&(conn->start),&(conn->end));
 	DPRINTF("elapsed = %lf", elapsed);
 	new_thruput = ((sum / 1000 * 8)) / elapsed;
 	conn->t_put = (int)new_thruput;

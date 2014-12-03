@@ -35,7 +35,7 @@ typedef struct conn_s {
 	int cur_bitrate;
 	char cur_file[MAX_FILE_NAME];
 	char cur_size;
-	struct timeval* start;
+	struct timeval start;
 	struct timeval end;
 } conn_t;
 

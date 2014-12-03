@@ -271,22 +271,13 @@ void client2server(int clit_idx)
         close_conn(conn_idx);
         return;
     }
-    
-    /* loggin  last finished file*/
-    if(conn->start == NULL) { 
-        conn->start = (struct timeval*)malloc(sizeof(struct timeval));
-        gettimeofday(conn->start,NULL);
-    } else {
-        fprintf(stderr, "logging finished!\n");
-        loggin(conn);
-    }
 
     /* update current requested file */
     strcpy(conn->cur_file,path);
     conn->cur_file[strlen(conn->cur_file)] = '\0';
     conn->cur_size = 0;
     gettimeofday(&(conn->end),NULL);
-    gettimeofday(conn->start,NULL);
+    gettimeofday(&(conn->start),NULL);
 
     server = GET_SERV_BY_IDX(conn->serv_idx);
     serv_fd = server->fd;
@@ -399,10 +390,16 @@ void server2client(int serv_idx) {
     client_fd = client->fd;
 
     read_responeshdrs(server_fd, client_fd, &res);
+
     if (res.length == 0) {
         close_conn(conn_idx);
         return;
     }
+    if(res.type == TYPE_F4F) {
+        update_thruput(res.length,conn);
+    }
+    loggin(conn); 
+    
     buf_internet = (char *)malloc(res.length + 1);
     
     if (res.type == TYPE_XML) {
@@ -414,6 +411,7 @@ void server2client(int serv_idx) {
             //exit(EXIT_FAILURE);
         }
         DPRINTF("Successfully recv XML from server:%d, n = %d\n", server_fd, n);
+
         buf_internet[res.length] = '\0';
 
         this_bitrates = parse_xml(buf_internet, res.length);
@@ -445,6 +443,7 @@ void server2client(int serv_idx) {
         }
         return;
     }
+
     /* This is not a XML */
     n = io_sendn(client_fd, res.hdr_buf, res.hdr_len);  
     if (n != res.hdr_len) {
@@ -473,11 +472,7 @@ void server2client(int serv_idx) {
     }
     DPRINTF("Send %d bytes to clit %d, should be %d\n", n, client_fd, res.length);
     gettimeofday(&(conn->end), NULL);  /* update conn end time */
-    
-    if(res.type == TYPE_F4F) {
-        update_thruput(n, conn); 
-    }
-    
+
     free(buf_internet);
     free(res.hdr_buf);
     res.hdr_buf = NULL;

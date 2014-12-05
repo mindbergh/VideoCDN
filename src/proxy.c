@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
     sigaddset(&mask, SIGPIPE);
     sigprocmask(SIG_BLOCK, &mask, &old_mask);
 
-    init_mydns(dns_ip, dns_port); // currently does nothing
+    init_mydns(dns_ip, dns_port, pool.fake_ip); // currently does nothing
     init_serv_list();
 
 
@@ -140,6 +140,7 @@ int main(int argc, char **argv) {
             int nonblock_flags = fcntl(client_sock,F_GETFL,0);
             fcntl(client_sock, F_SETFL,nonblock_flags|O_NONBLOCK);
             
+            add_client(client_sock, cli_addr.sin_addr.s_addr);/*
             if (get_client(cli_addr.sin_addr.s_addr) == -1) {
                 // new client arrive!
                 DPRINTF("New Client add! Sock:%d\n",client_sock);
@@ -147,7 +148,7 @@ int main(int argc, char **argv) {
             } else {
                 DPRINTF("Old Client arrive, update it's info!\n");
                 update_client(client_sock,cli_addr.sin_addr.s_addr);
-            }
+            }*/
         }
         if(pool.nready>0) {
             DPRINTF("About to serve client\n");
@@ -209,23 +210,21 @@ void client2server(int clit_idx)
     int port;
     char port_str[6];
     int flag;
-    size_t n;
-    size_t sum;
+    
     
     server_t* server = NULL;
     client_t* client = GET_CLIT_BY_IDX(clit_idx);
     conn_t *conn;
-    int conn_idx, serv_idx;
+    int conn_idx, serv_idx, thru_idx;
     
     int fd = client->fd;
     int serv_fd;
     
-    struct timeval start;
+    //struct timeval start;
     struct addrinfo *servinfo;
-    int lagv = -1;
+    
     int client_close = 0;
-    int new_thruput;
-    serv_list_t *serv_info;
+    
     struct sockaddr_in sa;
 
     char ip_str[INET_ADDRSTRLEN];
@@ -267,22 +266,29 @@ void client2server(int clit_idx)
 
         if ((conn_idx = client_get_conn(fd, sa.sin_addr.s_addr)) == -1) {
             serv_fd = open_server_socket(pool.fake_ip,pool.www_ip,port);
-            serv_idx = add_server(serv_fd,sa.sin_addr.s_addr);
+            serv_idx = add_server(serv_fd, sa.sin_addr.s_addr);
             DPRINTF("new server:%d add!\n",serv_fd);
             conn_idx = add_conn(clit_idx, serv_idx);
             DPRINTF("new connection:%d add!\n",conn_idx);     
-        } else {
-            if ( pool.conn_l[conn_idx]->alive == 0 )
+        } /*else {
+            conn = GET_CONN_BY_IDX(conn_idx);
+            if ( conn->alive == 0 ) {
                 serv_fd = open_server_socket(pool.fake_ip,pool.www_ip,port);
-                update_server(serv_fd,sa.sin_addr.s_addr);
-                serv_idx = get_server(serv_fd);
+                serv_idx = conn->serv_idx;
+                server = GET_SERV_BY_IDX(serv_idx);
+                server->fd = serv_fd;
+                server->num_clit++;
+                client->num_serv++;
+                //update_server(serv_fd, sa.sin_addr.s_addr);
+                //serv_idx = get_server(serv_fd);
                 update_conn(clit_idx,serv_idx);
-        }
+            }
+        }*/
     } else {
         resolve(host, port_str, NULL, &servinfo);
         struct sockaddr_in *serv_addrin = (struct sockaddr_in*)servinfo->ai_addr;
-        inet_ntop(AF_INET, serv_&(addrin->sin_addr), ip_str, sizeof(ip_str));
-        DPRINTF("Server IP resolved: %s", ip_str);
+        inet_ntop(AF_INET, &(serv_addrin->sin_addr), ip_str, sizeof(ip_str));
+        DPRINTF("Server IP resolved: %s\n", ip_str);
         DPRINTF("about to get conn\n");
         if((conn_idx = client_get_conn(fd, serv_addrin->sin_addr.s_addr)) == -1) {
             serv_fd = open_server_socket(pool.fake_ip,ip_str,port);
@@ -294,6 +300,7 @@ void client2server(int clit_idx)
     }
     
     conn = GET_CONN_BY_IDX(conn_idx);
+
 
     if (client_close == -1) {
         DPRINTF("read_requesthdrs return error!!!\n");
@@ -310,7 +317,9 @@ void client2server(int clit_idx)
 
     server = GET_SERV_BY_IDX(conn->serv_idx);
     serv_fd = server->fd;
-
+    if ((thru_idx = get_thru_by_addrs(client->addr, server->addr)) == -1) {
+        add_thru(client->addr, server->addr);
+    }
     
     if (endsWith(path, ".f4m") && !endsWith(path, "_nolist.f4m")) {
         flag = FLAG_LIST;
@@ -387,15 +396,17 @@ void client2server(int clit_idx)
 void server2client(int serv_idx) {
     server_t* server;
     client_t* client;
+    thruputs_t* thru;
     conn_t* conn;
     struct timeval start;
     //struct timeval end;
     int server_fd;
     int client_fd;
     int conn_idx;
+    int thru_idx;
 
     int n;
-    int sum;
+    //int sum;
     char* buf_internet;
 
     response_t res;
@@ -424,10 +435,14 @@ void server2client(int serv_idx) {
         close_conn(conn_idx);
         return;
     }
+
+    thru_idx = get_thru_by_addrs(client->addr, server->addr);
+    thru = GET_THRU_BY_IDX(thru_idx);
     if(res.type == TYPE_F4F) {
-        update_thruput(res.length,conn);
+        update_thruput(res.length, conn, thru);
+        //update_thruput_global(conn);
     }
-    loggin(conn); 
+    loggin(conn, thru); 
 
     buf_internet = (char *)malloc(res.length + 1);
     
@@ -627,7 +642,7 @@ int read_requesthdrs(int fd, char *host, int* port) {
 
 int read_requesthdrs(int clit_fd, char *host, int* port) {
     int len = 0;
-    int i;
+    //int i;
     char *tmp;
     char buf[MAXLINE];
     char key[MAXLINE];
@@ -706,7 +721,7 @@ int read_requesthdrs(int clit_fd, char *host, int* port) {
  */
 void read_responeshdrs(int serv_fd, int clit_fd, response_t* res) {
     int len = 0;
-    int i;
+    //int i;
     char *tmp;
     char buf[MAXLINE];
     char key[MAXLINE];
@@ -728,9 +743,9 @@ void read_responeshdrs(int serv_fd, int clit_fd, response_t* res) {
         
 
         if (len == 0)
-            return 1;
+            return;
 
-        if (buf[len - 1] != '\n') return -1;
+        if (buf[len - 1] != '\n') return;
 
         DPRINTF("Receive line:%s\n", buf);
 

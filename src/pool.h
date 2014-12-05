@@ -46,9 +46,11 @@ typedef struct pool_s {
 	int max_conn_idx;
 	int max_clit_idx;
 	int max_serv_idx;
+	int max_thru_idx;
 	client_t* client_l[FD_SETSIZE];
  	server_t* server_l[FD_SETSIZE];
 	conn_t* conn_l[FD_SETSIZE]; /* array of points to all connections */
+	thruputs_t* thru_l[FD_SETSIZE];
 } pool_t;
 
 void init_pool(int, pool_t *,char**);

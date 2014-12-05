@@ -10,6 +10,7 @@
 
 
 #define GET_CONN_BY_IDX(idx) (pool.conn_l[idx]);
+#define GET_THRU_BY_IDX(idx) (pool.thru_l[idx]);
 
 typedef struct client_s {
     int fd;        /* client fd */
@@ -47,6 +48,11 @@ typedef struct response_s {
 	int hdr_len;
 } response_t;
 	
+typedef struct thruputs_s {
+	uint32_t clit_addr;
+	uint32_t serv_addr;
+	int avg_put; /* current EWMA thruput estimate in Kbps */
+} thruputs_t;
 
 
 int server_get_conn(int );
@@ -54,6 +60,8 @@ int client_get_conn(int ,uint32_t);
 int add_conn(int, int);
 int update_conn(int clit_idx, int serv_idx);
 void close_conn(int);
-int update_thruput(int, conn_t*);
+int update_thruput(int, conn_t*, thruputs_t* thru);
 
+int get_thru_by_addrs(uint32_t clit_addr, uint32_t serv_addr);
+int add_thru(uint32_t clit_addr, uint32_t serv_addr);
 #endif

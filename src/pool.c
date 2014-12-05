@@ -20,10 +20,12 @@ void init_pool(int listen_sock, pool_t *p, char** argv) {
     pool.max_conn_idx = -1;
     pool.max_clit_idx = -1;
     pool.max_serv_idx = -1;
+    pool.max_thru_idx = -1;
     for (i = 0; i < FD_SETSIZE; i++) {
         pool.conn_l[i] = NULL;
         pool.client_l[i] = NULL;
         pool.server_l[i] = NULL;
+        pool.thru_l[i] == NULL;
     }
 
     pool.maxfd = listen_sock;
@@ -217,6 +219,11 @@ int add_server(int sock, uint32_t addr) {
     return -1;
 }
 
+
+
+
+
+
 int get_client(uint32_t addr) {
     int i = 0;
     client_t** cur_c = pool.client_l; 
@@ -281,13 +288,18 @@ void close_clit(int clit_idx) {
     client_t *client = GET_CLIT_BY_IDX(clit_idx);
     close_socket(client->fd);
     FD_CLR(client->fd, &(pool.read_set));
+    free(client);
+    GET_CLIT_BY_IDX(clit_idx) = NULL;
+    pool.cur_client--;
 }
 
 void close_serv(int serv_idx) {
     DPRINTF("close server:%d\n",serv_idx);
     server_t *server = GET_SERV_BY_IDX(serv_idx);
     close_socket(server->fd);
-    FD_CLR(server->fd, &(pool.read_set));    
+    FD_CLR(server->fd, &(pool.read_set));
+    free(server);
+    GET_SERV_BY_IDX(serv_idx) = NULL;    
 }
 
 /** @brief Wrapper function for closing socket

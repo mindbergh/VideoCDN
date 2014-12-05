@@ -128,12 +128,16 @@ void close_conn(int conn_idx) {
     if (clit->num_serv == 0)
     	close_clit(del_conn->clit_idx);
 
-    del_conn->alive = 0;
+    free(del_conn);
+    pool.conn_l[conn_idx] = NULL;
+    pool.cur_conn--;
+
+    //del_conn->alive = 0;
 }; 
 
 
 /* Thruput is in kbps */
-int update_thruput(int sum, conn_t* conn) {
+int update_thruput(int sum, conn_t* conn, thruputs_t* thru) {
 	assert(sum > 0);
 	int curr_thruput;
 	double elapsed = 0.0;
@@ -145,13 +149,54 @@ int update_thruput(int sum, conn_t* conn) {
 	DPRINTF("elapsed = %lf", elapsed);
 	new_thruput = ((sum / 1000 * 8)) / elapsed;
 	conn->t_put = (int)new_thruput;
-	curr_thruput = conn->avg_put;
-	DPRINTF(" Old:%d, New:%f, alpha:%f\n", curr_thruput, new_thruput,alpha);
+
+	
+	curr_thruput = thru->avg_put;
+	DPRINTF(" Old:%d, New:%f, alpha:%f\n", curr_thruput, new_thruput, alpha);
 	if (curr_thruput != 0) {
 		new_thruput = (alpha * new_thruput + (1.0 - alpha) * curr_thruput);
 	}
-	conn->avg_put = (int)new_thruput;
-	DPRINTF(" New avg_put:%d\n", conn->avg_put);
-	conn->cur_bitrate = conn->avg_put;
+	thru->avg_put = (int)new_thruput;
+	DPRINTF(" New avg_put:%d\n", thru->avg_put);
+	conn->cur_bitrate = thru->avg_put;
 	return (int)new_thruput; 
+}
+
+
+int get_thru_by_addrs(uint32_t clit_addr, uint32_t serv_addr) {
+	int i = 0;
+	thruputs_t** thru = pool.thru_l;
+
+	for (i = 0; i<= pool.max_thru_idx; i++) {
+		if (thru[i] == NULL) 
+			continue;
+		
+		if(thru[i]->clit_addr == clit_addr && thru[i]->serv_addr == serv_addr) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+int add_thru(uint32_t clit_addr, uint32_t serv_addr) {
+    thruputs_t** thru = pool.thru_l;
+    thruputs_t* new_thru;
+    int i = 0;
+
+    for(; i < FD_SETSIZE;i++) {
+        if (thru[i] == NULL) {
+            new_thru = (thruputs_t*)malloc(sizeof(thruputs_t));
+            new_thru->clit_addr = clit_addr;
+            new_thru->serv_addr = serv_addr;
+            new_thru->avg_put = 0;
+            thru[i] = new_thru;
+            
+            if (i > pool.max_thru_idx) {
+                pool.max_thru_idx = i;
+            }
+            return i;
+        }
+    }
+    /* failed to add new server */
+    return -1;
 }

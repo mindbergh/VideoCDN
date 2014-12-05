@@ -6,7 +6,7 @@
 #include "conn.h"
 #include <stdlib.h>
 
-void loggin(conn_t* conn);
+void loggin(conn_t* conn, thruputs_t* thru);
 
 
 

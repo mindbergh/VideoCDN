@@ -180,7 +180,7 @@ int gen_res(char* req_buf, char* res_buf, char* dest_addr) {
     //set ip
     struct sockaddr_in sa;
     inet_pton(AF_INET, dest_addr, &(sa.sin_addr));
-    *((uint32_t*)(res_buf+len)) = htonl(sa.sin_addr.s_addr);
+    *((uint32_t*)(res_buf+len)) = sa.sin_addr.s_addr;
     len += 4; // ipv4
     return len;
 }
@@ -247,5 +247,6 @@ static void ns_log(char* clit_ip, char* host_name, char* res_ip) {
 	fprintf(flog, "%s ", clit_ip);
 	fprintf(flog, "%s ", host_name);
 	fprintf(flog, "%s\n", res_ip);
+	fflush(flog);
 	return;
 }

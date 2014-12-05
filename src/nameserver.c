@@ -1,6 +1,7 @@
 #include "nameserver.h"
 #include "mydns.h"
 #include "pool.h"
+#include "osph.h"
 
 static char ref_pkt[BUFSIZE];
 static int ref_pkt_len;

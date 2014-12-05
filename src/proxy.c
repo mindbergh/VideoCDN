@@ -215,6 +215,7 @@ void client2server(int clit_idx)
     server_t* server = NULL;
     client_t* client = GET_CLIT_BY_IDX(clit_idx);
     conn_t *conn;
+    thruputs_t* thru;
     int conn_idx, serv_idx, thru_idx;
     
     int fd = client->fd;
@@ -318,9 +319,9 @@ void client2server(int clit_idx)
     server = GET_SERV_BY_IDX(conn->serv_idx);
     serv_fd = server->fd;
     if ((thru_idx = get_thru_by_addrs(client->addr, server->addr)) == -1) {
-        add_thru(client->addr, server->addr);
+        thru_idx = add_thru(client->addr, server->addr);
     }
-    
+    thru = GET_THRU_BY_IDX(thru_idx);
     if (endsWith(path, ".f4m") && !endsWith(path, "_nolist.f4m")) {
         flag = FLAG_LIST;
         strcpy(path_list, path);
@@ -330,10 +331,10 @@ void client2server(int clit_idx)
         DPRINTF("Path=%s\n", path);
         bit_t *b = bitrates;
         int chosen_rate = 0;
-        int thru = conn->avg_put / 1.5;
+        int avg_thru = thru->avg_put / 1.5;
         int smallest = 100;
         while (b) {
-            if (b->bitrate > chosen_rate && b->bitrate <= thru) {
+            if (b->bitrate > chosen_rate && b->bitrate <= avg_thru) {
                 chosen_rate = b->bitrate;
             }
             if (b->bitrate < smallest) {

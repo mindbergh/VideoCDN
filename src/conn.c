@@ -158,7 +158,6 @@ int update_thruput(int sum, conn_t* conn, thruputs_t* thru) {
 	}
 	thru->avg_put = (int)new_thruput;
 	DPRINTF(" New avg_put:%d\n", thru->avg_put);
-	conn->cur_bitrate = thru->avg_put;
 	return (int)new_thruput; 
 }
 

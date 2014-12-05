@@ -207,6 +207,7 @@ void client2server(int clit_idx)
     char buf_internet[MAXLINE];
     char host[MAXLINE], path[MAXLINE], path_list[MAXLINE];
     int port;
+    char port_str[6];
     int flag;
     size_t n;
     size_t sum;
@@ -226,6 +227,8 @@ void client2server(int clit_idx)
     int new_thruput;
     serv_list_t *serv_info;
     struct sockaddr_in sa;
+
+    char ip_str[INET_ADDRSTRLEN];
 
     /* Read request line and headers */
 
@@ -256,6 +259,7 @@ void client2server(int clit_idx)
 		              "Ming couldn't parse the request");
 		return;
     }
+    sprintf(port_str, "%d", port);
     DPRINTF("www_ip:%s\n",pool.www_ip);
     if (pool.www_ip) {
         inet_pton(AF_INET, pool.www_ip, &(sa.sin_addr));
@@ -275,7 +279,18 @@ void client2server(int clit_idx)
                 update_conn(clit_idx,serv_idx);
         }
     } else {
-        resolve(host, port, NULL, &servinfo);
+        resolve(host, port_str, NULL, &servinfo);
+        struct sockaddr_in *serv_addrin = (struct sockaddr_in*)servinfo->ai_addr;
+        inet_ntop(AF_INET, serv_&(addrin->sin_addr), ip_str, sizeof(ip_str));
+        DPRINTF("Server IP resolved: %s", ip_str);
+        DPRINTF("about to get conn\n");
+        if((conn_idx = client_get_conn(fd, serv_addrin->sin_addr.s_addr)) == -1) {
+            serv_fd = open_server_socket(pool.fake_ip,ip_str,port);
+            serv_idx = add_server(serv_fd,serv_addrin->sin_addr.s_addr);
+            DPRINTF("new server:%d add!\n",serv_fd);
+            conn_idx = add_conn(clit_idx, serv_idx);
+            DPRINTF("new connection:%d add!\n",conn_idx);
+        }
     }
     
     conn = GET_CONN_BY_IDX(conn_idx);

@@ -169,7 +169,7 @@ ssize_t io_recvline_block(int fd, void *usrbuf, size_t maxlen) {
 		    }
 		} else {
 			if (errno == EWOULDBLOCK || errno == EAGAIN) {
-				DPRINTF("read entire buffer once");
+				DPRINTF("read entire buffer once\n");
 				continue;
 			}
 			DPRINTF("recv error on %s\n", strerror(errno));

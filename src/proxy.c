@@ -399,7 +399,7 @@ void server2client(int serv_idx) {
     client_t* client;
     thruputs_t* thru;
     conn_t* conn;
-    struct timeval start;
+    //struct timeval start;
     //struct timeval end;
     int server_fd;
     int client_fd;
@@ -425,7 +425,6 @@ void server2client(int serv_idx) {
         //exit(-1);
     }
     conn = GET_CONN_BY_IDX(conn_idx);
-    gettimeofday(&(conn->end), NULL);  /* update conn end time */
     
     client = GET_CLIT_BY_IDX(conn->clit_idx);
     client_fd = client->fd;
@@ -436,14 +435,6 @@ void server2client(int serv_idx) {
         close_conn(conn_idx);
         return;
     }
-
-    thru_idx = get_thru_by_addrs(client->addr, server->addr);
-    thru = GET_THRU_BY_IDX(thru_idx);
-    if(res.type == TYPE_F4F) {
-        update_thruput(res.length, conn, thru);
-        //update_thruput_global(conn);
-    }
-    loggin(conn, thru); 
 
     buf_internet = (char *)malloc(res.length + 1);
     
@@ -472,6 +463,18 @@ void server2client(int serv_idx) {
             return;
         }
         DPRINTF("This is a non-listed XML\n");
+        
+
+        gettimeofday(&(conn->end), NULL);  /* update conn end time */
+    
+        thru_idx = get_thru_by_addrs(client->addr, server->addr);
+        thru = GET_THRU_BY_IDX(thru_idx);
+        if(res.type == TYPE_F4F) {
+            update_thruput(res.length, conn, thru);
+            //update_thruput_global(conn);
+        }
+        loggin(conn, thru); 
+
         n = io_sendn(client_fd, res.hdr_buf, res.hdr_len);  
         if (n != res.hdr_len) {
             DPRINTF("Unsuccessfully forward hdr:%d, n = %d, length should be %d\n", client_fd, n, res.hdr_len);
@@ -498,25 +501,34 @@ void server2client(int serv_idx) {
         //exit(EXIT_FAILURE);
     }
     /* Forward respond */
-    gettimeofday(&start, NULL);
+    //gettimeofday(&start, NULL);
     n = io_recvn_block(server_fd, buf_internet, res.length);
     /*if (n != res.length) {
         DPRINTF("Unsuccessfully recv body from server:%d, n = %d, length should be %d\n", server_fd, n, res.length);
         exit(EXIT_FAILURE);
-    }*/
-
-    DPRINTF("Successfully recv body from server:%d, n = %d,len = %d\n", server_fd, n, res.length);
+    }*/    
     if (n == 0) {
         close_conn(conn_idx);
         return;
     }
+    gettimeofday(&(conn->end), NULL);  /* update conn end time */
+    
+    thru_idx = get_thru_by_addrs(client->addr, server->addr);
+    thru = GET_THRU_BY_IDX(thru_idx);
+    if(res.type == TYPE_F4F) {
+        update_thruput(res.length, conn, thru);
+        //update_thruput_global(conn);
+    }
+    loggin(conn, thru); 
+
+    DPRINTF("Successfully recv body from server:%d, n = %d,len = %d\n", server_fd, n, res.length);
     n = io_sendn(client_fd, buf_internet, res.length);
     if (n == -1) {
         close_conn(conn_idx);
         return;
     }
     DPRINTF("Send %d bytes to clit %d, should be %d\n", n, client_fd, res.length);
-    gettimeofday(&(conn->end), NULL);  /* update conn end time */
+    //gettimeofday(&(conn->end), NULL);  /* update conn end time */
 
     free(buf_internet);
     free(res.hdr_buf);

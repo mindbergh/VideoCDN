@@ -9,7 +9,7 @@
 ################################################################################
 
 all:
-	cd src;make;mv proxy ../
+	cd src;make;make nameserver;mv proxy ../;mv nameserver ../
 
 clean:
 	rm proxy;cd src;make clean

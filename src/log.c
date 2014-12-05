@@ -19,7 +19,7 @@ void loggin(conn_t* conn, thruputs_t* thru) {
 
 	fprintf(logfile, "%ld ", since_epoch);
 	fprintf(logfile, "%lf ", secs);
-	fprintf(stderr, "duration:%lf ", secs);
+	//fprintf(stderr, "duration:%lf ", secs);
 	fprintf(logfile, "%d ", conn->t_put);
 	fprintf(logfile, "%d ", thru->avg_put);
 	fprintf(logfile, "%d ", conn->cur_bitrate);

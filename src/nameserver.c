@@ -84,12 +84,16 @@ void init_ref() {
 int init_udp(char* ip, int port, fd_set* read_set) {
   int sock;
   struct sockaddr_in myaddr;
-  
+  int yes = 1;
   if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) == -1) {
     DPRINTF("init_udp could not create socket");
     exit(-1);
   }
   
+  // lose the pesky "address already in use" error message
+  setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
+
+
   bzero(&myaddr, sizeof(myaddr));
   myaddr.sin_family = AF_INET;
   inet_pton(AF_INET, ip, &(myaddr.sin_addr));

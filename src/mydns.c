@@ -15,6 +15,7 @@ dns_t dns;
  */
 int init_mydns(const char *dns_ip, unsigned int dns_port, const char *local_ip) {
   int sock;
+  int yes = 1;
   struct sockaddr_in myaddr;
 
   DPRINTF("Entering init_mydns\n");
@@ -30,6 +31,10 @@ int init_mydns(const char *dns_ip, unsigned int dns_port, const char *local_ip) 
   inet_pton(AF_INET, local_ip, &(myaddr.sin_addr));
   myaddr.sin_port = htons(0);
   
+  // lose the pesky "address already in use" error message
+  setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
+
+
   if (bind(sock, (struct sockaddr *) &myaddr, sizeof(myaddr)) == -1) {
     DPRINTF("init_mydns could not bind socket");
     exit(-1);

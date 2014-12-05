@@ -152,7 +152,6 @@ data_packet_t* q_pkt_maker(const char* node) {
 	// generate header
 	srand(time(NULL));
 	header->id = (uint16_t)rand();
-
 	//header->FLAG = 0; // 0 0000 0 0 0 0 000 0000
 	header->qr = 0;  // a query
 	header->opcode = 0;
@@ -168,7 +167,6 @@ data_packet_t* q_pkt_maker(const char* node) {
     header->ancount = 0;
     header->nscount = 0;
     header->arcount = 0;
-	
 	// generate data 
 	convertName(name,node);
 

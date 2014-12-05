@@ -154,15 +154,19 @@ ssize_t io_recvline_block(int fd, void *usrbuf, size_t maxlen) {
 
     for (n = 1; n < maxlen; n++) { 
 		if ((rc = recv(fd, &c, 1, 0)) == 1) {
-		    *bufp++ = c;
+			*bufp++ = c;
 		    if (c == '\n')
 			break;
 		} else if (rc == 0) {
 			DPRINTF("recv hdr = 0!\n");	
-		    if (n == 1)
+		    if (n == 1) {
+		    	DPRINTF("recv() return 0, with no data read\n");
 				return 0; /* EOF, no data read */
-		    else
+		    }
+		    else{
+		    	DPRINTF("recv() return 0, with some data read\n");
 				return n; /* EOF, some data was read */
+		    }
 		} else {
 			if (errno == EWOULDBLOCK || errno == EAGAIN) {
 				DPRINTF("read entire buffer once");

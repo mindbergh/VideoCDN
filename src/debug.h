@@ -7,7 +7,6 @@
 #include <assert.h>
 #include <stdio.h>
 
-
 #ifdef DEBUG
 #define DPRINTF(fmt, args...) \
         do { fprintf(stderr, fmt, ##args); } while(0)

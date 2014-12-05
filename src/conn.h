@@ -35,8 +35,9 @@ typedef struct conn_s {
 	int cur_bitrate;
 	char cur_file[MAX_FILE_NAME];
 	char cur_size;
-	struct timeval* start;
+	struct timeval start;
 	struct timeval end;
+	int alive; /* 1 when connection is alive; 0 when connection is closed */
 } conn_t;
 
 typedef struct response_s {
@@ -51,6 +52,7 @@ typedef struct response_s {
 int server_get_conn(int );
 int client_get_conn(int ,uint32_t);
 int add_conn(int, int);
+int update_conn(int clit_idx, int serv_idx);
 void close_conn(int);
 int update_thruput(int, conn_t*);
 

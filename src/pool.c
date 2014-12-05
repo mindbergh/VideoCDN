@@ -145,7 +145,6 @@ int open_server_socket(char *fake_ip, char *www_ip, int port) {
     return serverfd;    
 }
 
-
 /** @brief Add a new client fd
  *  @param conn_sock The socket of client to be added
  *  @param p the pointer to the pool
@@ -218,26 +217,77 @@ int add_server(int sock, uint32_t addr) {
     return -1;
 }
 
+int get_client(uint32_t addr) {
+    int i = 0;
+    client_t** cur_c = pool.client_l; 
+    for( i = 0; i < FD_SETSIZE; i++) {
+        if (cur_c[i] == NULL)
+            continue;
+        if (cur_c[i]->addr == addr)
+            return i;
+    }
+    return -1;
+}
+
+int get_server(int sock) {
+    int i = 0;
+    server_t** cur_s = pool.server_l;
+    for( i = 0; i < FD_SETSIZE; i++) {
+        if (cur_s[i] == NULL)
+            continue;
+        if (cur_s[i]->fd == sock)
+            return i;
+    }
+    return -1;
+}
 
 
+int update_client(int sock, uint32_t addr) {
+        int i = 0;
+    client_t** cur_c = pool.client_l; 
+    for( i = 0; i < FD_SETSIZE; i++) {
+        if (cur_c[i] == NULL)
+            continue;
+        if (cur_c[i]->addr == addr) {
+            cur_c[i]->fd = sock;
+            FD_SET(sock,&(pool.read_set));
+    
+            return 0;
+        }
+    }
+    // should never reach here!
+    DPRINTF("wants to update, but no client found!\n");
+    return -1;   
+}
 
+int update_server(int sock, uint32_t addr) {
+    int i = 0;
+    server_t** cur_s = pool.server_l;
+    for( i = 0; i < FD_SETSIZE; i++) {
+        if (cur_s[i] == NULL)
+            continue;
+        if (cur_s[i]->addr == addr) {
+            cur_s[i]->fd = sock;
+            FD_SET(sock,&(pool.read_set));
+            return 0;
+        }
+    }
+    DPRINTF("wants to update, but no server found!\n");
+    return -1;
+}
 
 void close_clit(int clit_idx) {
+    DPRINTF("close client:%d\n",clit_idx);
     client_t *client = GET_CLIT_BY_IDX(clit_idx);
     close_socket(client->fd);
     FD_CLR(client->fd, &(pool.read_set));
-    free(client);
-    GET_CLIT_BY_IDX(clit_idx) = NULL;    
-    pool.cur_client--;
 }
 
 void close_serv(int serv_idx) {
+    DPRINTF("close server:%d\n",serv_idx);
     server_t *server = GET_SERV_BY_IDX(serv_idx);
     close_socket(server->fd);
-    FD_CLR(server->fd, &(pool.read_set));
-    free(server);
-    GET_SERV_BY_IDX(serv_idx) = NULL;
-    pool.cur_server--;    
+    FD_CLR(server->fd, &(pool.read_set));    
 }
 
 /** @brief Wrapper function for closing socket

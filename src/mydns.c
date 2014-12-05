@@ -7,12 +7,13 @@ dns_t dns;
  * Initialize your client DNS library with the IP address and port number of
  * your DNS server.
  *
- * @param  dns_ip  The IP address of the DNS server.
+ * @param  dns_ip    The IP address of the DNS server.
  * @param  dns_port  The port number of the DNS server.
+ * @param  local_ip  The local ip address client sockets should bind to
  *
  * @return 0 on success, -1 otherwise
  */
-int init_mydns(const char *dns_ip, unsigned int dns_port) {
+int init_mydns(const char *dns_ip, unsigned int dns_port, const char *local_ip) {
   int sock;
   struct sockaddr_in myaddr;
 
@@ -25,7 +26,8 @@ int init_mydns(const char *dns_ip, unsigned int dns_port) {
   
   bzero(&myaddr, sizeof(myaddr));
   myaddr.sin_family = AF_INET;
-  myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+  //myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+  inet_pton(AF_INET, local_ip, &(myaddr.sin_addr));
   myaddr.sin_port = htons(0);
   
   if (bind(sock, (struct sockaddr *) &myaddr, sizeof(myaddr)) == -1) {
@@ -38,7 +40,7 @@ int init_mydns(const char *dns_ip, unsigned int dns_port) {
   memset((char*)&(dns.servaddr), 0, sizeof(dns.servaddr));
   dns.servaddr.sin_family = AF_INET;
   dns.servaddr.sin_port = htons(dns_port);
-  inet_pton(AF_INET, dns_ip,&(dns.servaddr.sin_addr));
+  inet_pton(AF_INET, dns_ip, &(dns.servaddr.sin_addr));
 
   DPRINTF("Exiting init_mydns\n");
   return 0;
@@ -112,22 +114,26 @@ int resolve(const char *node, const char *service,
 	DPRINTF("Recv DNS\n");
 	if (recvlen == -1) {
 		DPRINTF("DNS recv error: %s\n", strerror(errno));
+		free_pkt(pkt);
 		return -1;
 	}
 
 	// parse response
 	if (parse_res(buf, res_buf, tmp, pkt_len) != 0 ) {
 		DPRINTF("Fail to parse DNS response!");
+		free_pkt(pkt);
 		return -1;
 	}
+	free_pkt(pkt);
 	// fill up port info
 	((struct sockaddr_in*)tmp->ai_addr)->sin_port = htons(atoi(service));
 	return 0; 
 }
-/*
-void freeMyAddrinfo(struct addrinfo *addr) {
 
-}*/
+void freeMyAddrinfo(struct addrinfo *addr) {
+	free(addr->ai_addr);
+	free(addr);
+}
 
 data_packet_t* q_pkt_maker(const char* node) {
 	

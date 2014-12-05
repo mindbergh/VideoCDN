@@ -21,19 +21,22 @@ proxy: $(objects)
 		$(CC) -o $@ $^ $(LDFLAGS)
 mydns: mydns.o
 		$(CC) -o $@ $^ $(LDFLAGS)
-nameserver: nameserver.o mydns.o
-	    $(CC) -o $@ $^ $(LDFLAGS)
+
+nameserver: nameserver.o mydns.o ospf.o
+	    $(CC) -o $@ $^ $(FMLIB)libming.a $(LDFLAGS) 
+
 dnstest: dnstest.o mydns.o
 		$(CC) -o $@ $^ $(LDFLAGS)
 
 ospf: ospf.o
-		$(CC) -o $@ $^ $(FMLIB)mlib.a $(LDFLAGS) 
+		$(CC) -o $@ $^ $(FMLIB)libming.a $(LDFLAGS) 
 
 proxy.o: proxy.c pool.h mydns.h debug.h io.h media.h conn.h timer.h log.h parse_xml.h
 pool.o: pool.c pool.h
 io.o: io.c io.h
 mydns.o: mydns.c mydns.h debug.h
-nameserver.o: nameserver.c nameserver.h mydns.h debug.h
+nameserver.o: nameserver.c nameserver.h mydns.h debug.h ospf.h
+ospf.o: ospf.c ospf.h
 dnstest.o: dnstest.c mydns.h
 media.o: media.c media.h
 conn.o: conn.c conn.h

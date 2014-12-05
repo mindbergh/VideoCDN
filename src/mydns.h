@@ -171,5 +171,6 @@ int pkt2buf(char* buf, data_packet_t* pkt);
 void free_pkt(data_packet_t* pkt);
 void hostToNet(data_packet_t* pkt);
 void netToHost(data_packet_t* pkt);
+void freeMyAddrinfo(struct addrinfo *addr);
 
 #endif

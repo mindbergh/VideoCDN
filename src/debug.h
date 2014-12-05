@@ -7,8 +7,13 @@
 #include <assert.h>
 #include <stdio.h>
 
-#define VERBOSE 1
+
+#ifdef DEBUG
 #define DPRINTF(fmt, args...) \
-        do { if (VERBOSE) fprintf(stderr, fmt, ##args); } while(0)
+        do { fprintf(stderr, fmt, ##args); } while(0)
+#else
+#define DPRINTF(fmt, args...)
+#endif
+
 
 #endif

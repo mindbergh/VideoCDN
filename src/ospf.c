@@ -3,7 +3,6 @@
 #include <string.h>
 
 #define BUFSIZE 100
-#define DEBUG
 
 static void print_topo(void* data, void* func_data);
 static void print_table(void* data, void* func_data);
@@ -21,27 +20,39 @@ MList *servs; // data is a MList* of nodes
 MList *clits; // data is a MList* of nodes
 MList *nodes; // data is a node_t*
 MList *routing_table;  // data is a rt_t*
+uint32_t query_count;
 
-void OSPF_init(char *servers, char *LSAs) {
+void OSPF_init(char *servers, char *LSAs, int rr_flag) {
 	parse_servs(servers);
-	parse_LSA(LSAs);
-
-#ifdef DEBUG
+	if (rr_flag)
+		parse_LSA(LSAs);
+	else
+		return;
+#ifdef DEBUG1
 	mlist_foreach(nodes, print_topo, NULL);
 #endif	
 
 	mlist_foreach(clits, shortest_path, NULL);
 
-#ifdef DEBUG
+#ifdef DEBUG1
 	mlist_foreach(routing_table, print_table, NULL);
 #endif
 }
 
 
-char* route(char* clit_name) {
-	MList* list = mlist_find_custom(routing_table, clit_name, find_entry_by_name);
-	rt_t* entry = (rt_t*)list->data;
-	return entry->serv->name;
+char* route(char* clit_name, int rr_flag) {
+	
+	if (rr_flag) {
+		uint32_t size = mlist_length(nodes);
+		node_t* node = (node_t*)mlist_getdata(nodes, query_count % size);
+		query_count++;
+		return node->name;
+	} else {
+		MList* list = mlist_find_custom(routing_table, clit_name, find_entry_by_name);
+		rt_t* entry = (rt_t*)list->data;
+		return entry->serv->name;
+	}
+	return NULL;	
 }
 
 

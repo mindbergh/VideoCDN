@@ -37,6 +37,7 @@ typedef struct rt_s {
 
 
 
-void OSPF_init(char *servers, char *LSAs);
+void OSPF_init(char *servers, char *LSAs, int rr_flag);
+char* route(char* clit_name, int rr_flag);
 
 #endif

@@ -4,6 +4,8 @@
 
 extern pool_t pool;
 
+
+
 void loggin(conn_t* conn) {
 	time_t since_epoch;
 	since_epoch = time(NULL);
@@ -26,3 +28,6 @@ void loggin(conn_t* conn) {
 
 	fflush(pool.log_file);
 }
+
+
+

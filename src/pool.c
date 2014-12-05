@@ -299,7 +299,8 @@ void close_serv(int serv_idx) {
     close_socket(server->fd);
     FD_CLR(server->fd, &(pool.read_set));
     free(server);
-    GET_SERV_BY_IDX(serv_idx) = NULL;    
+    GET_SERV_BY_IDX(serv_idx) = NULL;
+    pool.cur_server--;    
 }
 
 /** @brief Wrapper function for closing socket

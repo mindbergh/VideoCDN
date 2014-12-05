@@ -125,7 +125,7 @@ void serve(int fd, int rr_flag) {
 		} else {
 			// generate response
 			res_ip_str = route(from_str, rr_flag);
-			ns_log(from_str, res_ip_str, res_ip_str);
+			ns_log(from_str, ref_host, res_ip_str);
 			pkt_len = gen_res(req_buf, res_buf, res_ip_str);
 			// send response back to client
 			sendto(fd, res_buf, pkt_len, 0, (struct sockaddr *)&from, fromlen);

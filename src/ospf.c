@@ -24,7 +24,7 @@ uint32_t query_count;
 
 void OSPF_init(char *servers, char *LSAs, int rr_flag) {
 	parse_servs(servers);
-	if (rr_flag)
+	if (!rr_flag)
 		parse_LSA(LSAs);
 	else
 		return;

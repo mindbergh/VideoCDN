@@ -13,11 +13,12 @@
 #include "debug.h"
 
 void usage();
+void init_ref();
 int init_udp(char* ip, int port, fd_set* read_set);
 void serve(int fd);
-int parse(data_packet_t* pkt);
-data_packet_t* gen_err(data_packet_t* );
-data_packet_t* gen_res(data_packet_t*, (struct sockaddr *) );
+int parse(char* buf);
+int gen_err(char* origin);
+int gen_res(char* req_buf, char* res_buf, char* dest_addr);
 
 
 

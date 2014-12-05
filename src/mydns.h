@@ -3,21 +3,27 @@
 
 #include <netdb.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
 #include <stdint.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/ip.h> 
+#include <arpa/inet.h>
 #include <string.h>
 #include <netdb.h>
 #include "debug.h"
 
+
+
+
 #define DATALEN 34 // The longest data length for this proj
 #define BUFSIZE 8192
 
-static const unsigned char* QUERY = ".video.cmu.edu";
-static const unsigned char* RES = "00000101011101100110100101100100011001010110111100000010011000110111001100000011011000110110110101110101000000110110010101100100011101010000000000000000000000010000000000000001110000000000110000000000000000010000000000000001000000000000000000000000000000000000000000000100";
-static const unsigned char* ERR = "00000101011101100110100101100100011001010110111100000010011000110111001100000011011000110110110101110101000000110110010101100100011101010000000000000000000000010000000000000001";
+//static const unsigned char* QUERY = "video.cs.cmu.edu";
+//static const unsigned char* RES = "00000101011101100110100101100100011001010110111100000010011000110111001100000011011000110110110101110101000000110110010101100100011101010000000000000000000000010000000000000001110000000000110000000000000000010000000000000001000000000000000000000000000000000000000000000100";
+//static const unsigned char* ERR = "00000101011101100110100101100100011001010110111100000010011000110111001100000011011000110110110101110101000000110110010101100100011101010000000000000000000000010000000000000001";
 
 /**
  *  The struct for DNS service on client side.
@@ -79,15 +85,15 @@ typedef struct answer_s {
     uint16_t ardlength;
 } answer_t;
 
-typedef struct response_s {
-    unsigned char* name;
-    struct answer_t* answer;
-    unsigned char* data;
-} response_t;
+typedef struct dns_response_s {
+    char* name;
+    answer_t* answer;
+    char* data;
+} dns_response_t;
 
 typedef struct query_s {
-    unsigned char* qname;
-    struct question_t* question;
+    char* qname;
+    question_t* question;
 } query_t;
 /**
  *  The struct for DNS packet.
@@ -97,7 +103,7 @@ typedef struct query_s {
 typedef struct data_packet {
     header_t* header;
     query_t* query;
-    response_t* response;
+    dns_response_t* response;
 } data_packet_t;
 
 
@@ -148,7 +154,7 @@ int resolve(const char *node, const char *service,
  *
  * @return a query pkt if succeed, NULL if failed 
  */
-data_packet_t* q_pkt_maker(const char* node, const char* service,int*);
+data_packet_t* q_pkt_maker(const char* node);
 
 
 /**
@@ -159,7 +165,11 @@ data_packet_t* q_pkt_maker(const char* node, const char* service,int*);
  *
  * @return 0 if the response is valid with correct result, -1 if query failed somehow
  */
-int parse_res(data_packet_t* pkt, struct addrinfo* tmp, int);
-void convertName(unsigned char* name, unsigned char* src);
+int parse_res(char* req_buf, char* res_buf, struct addrinfo* tmp, int pkt_len);
+void convertName(char* name, const char* src);
+int pkt2buf(char* buf, data_packet_t* pkt);
+void free_pkt(data_packet_t* pkt);
+void hostToNet(data_packet_t* pkt);
+void netToHost(data_packet_t* pkt);
 
 #endif

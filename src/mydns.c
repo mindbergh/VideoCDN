@@ -1,7 +1,5 @@
 #include "mydns.h"
-
-#define VIDEO_SERVER_QUERY "5video2cs3cmu3edu00101"
-
+#include <errno.h>
 /* globle varibal for dns service */
 dns_t dns;
 
@@ -17,9 +15,11 @@ dns_t dns;
 int init_mydns(const char *dns_ip, unsigned int dns_port) {
   int sock;
   struct sockaddr_in myaddr;
+
+  DPRINTF("Entering init_mydns\n");
   
   if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) == -1) {
-    perror("peer_run could not create socket");
+    DPRINTF("peer_run could not create socket");
     exit(-1);
   }
   
@@ -29,7 +29,7 @@ int init_mydns(const char *dns_ip, unsigned int dns_port) {
   myaddr.sin_port = htons(0);
   
   if (bind(sock, (struct sockaddr *) &myaddr, sizeof(myaddr)) == -1) {
-    perror("peer_run could not bind socket");
+    DPRINTF("init_mydns could not bind socket");
     exit(-1);
   }
 
@@ -40,6 +40,7 @@ int init_mydns(const char *dns_ip, unsigned int dns_port) {
   dns.servaddr.sin_port = htons(dns_port);
   inet_pton(AF_INET, dns_ip,&(dns.servaddr.sin_addr));
 
+  DPRINTF("Exiting init_mydns\n");
   return 0;
 }
 
@@ -71,10 +72,14 @@ int init_mydns(const char *dns_ip, unsigned int dns_port) {
 int resolve(const char *node, const char *service, 
             const struct addrinfo *hints, struct addrinfo **res) {
 	int recvlen = 0;
-	int randnum = 0;
+	int pkt_len = 0;
 	struct addrinfo *tmp;
 	data_packet_t* pkt;
 	char buf[BUFSIZE];
+	char res_buf[BUFSIZE];
+	struct sockaddr_in from;
+	socklen_t fromlen = sizeof(from);
+
 
 	*res = malloc(sizeof(struct addrinfo));
 	tmp = *res;
@@ -89,52 +94,59 @@ int resolve(const char *node, const char *service,
 	tmp->ai_next = NULL;
 
 	// generate query pkt
-	if((pkt	= q_pkt_maker(node,service,&randnum)) == NULL) {
+	if((pkt	= q_pkt_maker(node)) == NULL) {
 		DPRINTF("failed to generate query!\n");
 		return 0;
 	}
 
+	pkt_len = pkt2buf(buf, pkt);
+	DPRINTF("About to send\n");
 	// send query to DNS server
-	sendto(dns.sock, pkt, strlen(pkt), 0, (struct sockaddr *)&dns.servaddr, 
-		sizeof(dns.servaddr));
+	sendto(dns.sock, buf, pkt_len, 0, (struct sockaddr *)&dns.servaddr, 
+				sizeof(dns.servaddr));
+	DPRINTF("Send DNS\n");
 
 	// recv response from DNS server
-	while ((recvlen = recvfrom(dns.sock,buf,
-		BUFSIZE,0, (struct sockaddr *)&dns.servaddr, 
-		sizeof(dns.servaddr))) == 0 );
+	recvlen = recvfrom(dns.sock, res_buf,
+		BUFSIZE, 0, (struct sockaddr *)&from, &fromlen);
+	DPRINTF("Recv DNS\n");
+	if (recvlen == -1) {
+		DPRINTF("DNS recv error: %s\n", strerror(errno));
+		return -1;
+	}
 
 	// parse response
-	if (parse_res(buf,tmp,randnum) != 0 ) {
+	if (parse_res(buf, res_buf, tmp, pkt_len) != 0 ) {
 		DPRINTF("Fail to parse DNS response!");
 		return -1;
 	}
 	// fill up port info
-	((struct sockaddr_in*)&tmp->ai_addr)->sin_port = atoi(service);
+	((struct sockaddr_in*)tmp->ai_addr)->sin_port = htons(atoi(service));
 	return 0; 
 }
-
+/*
 void freeMyAddrinfo(struct addrinfo *addr) {
 
-}
+}*/
 
-data_packet_t* q_pkt_maker(const char* node, const char* service, int* randnum) {
+data_packet_t* q_pkt_maker(const char* node) {
 	
 	data_packet_t* tmp = (data_packet_t*) malloc(sizeof(data_packet_t));
 	tmp->header = (header_t*) malloc(sizeof(header_t));
 	tmp->query = (query_t*) malloc(sizeof(query_t));
-	tmp->query.qname = (unsigned char*)malloc(sizeof(unsigned char) * strlen(QUERY)+1);
-	tmp->query.question = (question_t*) malloc(sizeof(question_t));
+	tmp->query->qname = (char*)malloc(strlen(node)+2);  // one for head and one for tail
+	tmp->query->question = (question_t*) malloc(sizeof(question_t));
 	tmp->response = NULL;
 
 	header_t* header = tmp->header;
 	query_t* query = tmp->query;
 	question_t* question = query->question;
-	unsigned char* name = query->qname;
+	char* name = query->qname;
 
 	// generate header
 	srand(time(NULL));
-	header->ID = (uint16_t)rand();
-	*randnum = header->ID;
+	header->id = (uint16_t)rand();
+
 	//header->FLAG = 0; // 0 0000 0 0 0 0 000 0000
 	header->qr = 0;  // a query
 	header->opcode = 0;
@@ -152,51 +164,189 @@ data_packet_t* q_pkt_maker(const char* node, const char* service, int* randnum) 
     header->arcount = 0;
 	
 	// generate data 
-	convertName(name,QUERY);
+	convertName(name,node);
 
 	// set up data attribute
-	question->qtype = 1
-	question->qclass = 1
+	question->qtype = 1;
+	question->qclass = 1;
 	
 	return tmp;
 }
 
-int parse_res(data_packet_t* pkt, struct addrinfo* tmp, int random) {
+
+/**
+ *
+ * @param pkt_len the len of the request
+ *
+ */
+int parse_res(char* req_buf, char* res_buf, struct addrinfo* tmp, int pkt_len) {
 	char* ip;
 	uint32_t* ip_int;
-	// get the last 4 bytes as ip
-	ip = (char*) pkt + 4*4+32*2;
+	char* qname;
+	header_t* hdr = (header_t*)req_buf;
+	int offest;
+
+	hdr->ancount = htons(1);
+	hdr->qr = 1;
+	hdr->aa = 1;
+
+	if (memcmp(req_buf, res_buf, pkt_len)) {
+		DPRINTF("parse_res: Incorrect response!\n");
+		return -1;
+	}
+
+
+	qname = (char*)(req_buf + sizeof(header_t));
+	offest = pkt_len + strlen(qname)+1 + sizeof(answer_t);
+	ip = res_buf + offest;
 	ip_int = (uint32_t*)ip;
-	((struct sockaddr_in*)&tmp->ai_addr)->sin_addr.s_addr = *ip_int;
+	((struct sockaddr_in*)tmp->ai_addr)->sin_addr.s_addr = *ip_int;
 	return 0;
 }
-  
-void convertName(unsigned char* name, unsigned char* src) {
+
+/**
+ * convert src of sth like video.cs.cmu.edu
+ * to name of sth like 5video2cs3cmu3edu
+ *
+ */
+
+void convertName(char* name, const char* const_src) {
 	int dot = 0;
 	int i;
-	int length = strlen(src);
-	for(i=1; i < length; i++) {
+	int length = strlen(const_src);
+	char src[length+1];
+	memcpy(src, const_src, length);
+	src[length] = '.';
+
+	for(i = 0; i <= length; i++) {
 		if (src[i] == '.') {
-			name[dot] = (char)(i - dot -1);
-			dot = i;
-		} else {
-			name[i] = src[i];
+			*name++ = (i - dot);
+			for (;dot < i;dot++) {
+				*name++ = src[dot];
+			}
+			dot += 1;
 		}
 	}
-	name[strlen(src)] = '\0';
+	*name = '\0';
 }
 
-void pkt2buf(unsigned char* buf, data_packet_t* pkt) {
+int pkt2buf(char* buf, data_packet_t* pkt) {
 	int index  = 0, length = 0;
-	
+	dns_response_t* res = pkt->response;
+
+	hostToNet(pkt);
+
 	length = sizeof(header_t);
-	memcpy(buf+index,pkt->header,length);
-	
+	memcpy(buf+index,pkt->header,length);	
 	index += length;
+
 	length = strlen(pkt->query->qname)+1;
 	memcpy(buf+index,pkt->query->qname,length);
-
 	index += length;
-	length = sizeof(quesiton_t);
+
+	length = sizeof(question_t);
 	memcpy(buf+index,pkt->query->question,length);
+	index += length;
+
+	if (res) {
+		length = strlen(res->name) + 1;
+		memcpy(buf+index,res->name,length);
+		index += length;
+
+		length = sizeof(answer_t);
+		memcpy(buf+index,res->answer,length);
+		index += length;
+
+		length = sizeof(uint32_t); // only work for ipv4
+		memcpy(buf+index,res->data,length);
+		index += length;
+	}
+
+	return index;
 }
+
+
+
+
+/** @brief Convert data from local format to network format
+ *  @param pkt pkt to be send
+ *  @return void
+ */
+void hostToNet(data_packet_t* pkt) {
+	header_t* hdr = pkt->header;
+	query_t* qry = pkt->query;
+	question_t *q = qry->question;
+	dns_response_t* res = pkt->response;
+
+
+
+
+    hdr->id = htons(hdr->id);
+    hdr->rcode = htonl(hdr->rcode);
+    hdr->qdcount = htons(hdr->qdcount);
+    hdr->ancount = htons(hdr->ancount);
+
+    q->qtype = htons(q->qtype);
+    q->qclass = htons(q->qclass);
+
+    if (res) {
+    	answer_t* ans = res->answer;
+    	ans->atype = htons(ans->atype);
+        ans->aclass = htons(ans->aclass);
+        ans->attl = htons(ans->attl);
+        ans->ardlength = htons(ans->ardlength);
+    }
+}
+
+/** @brief Convert data from network format to local format
+ *  @param pkt pkt to be send
+ *  @return void
+ */
+void netToHost(data_packet_t* pkt) {
+	header_t* hdr = pkt->header;
+	query_t* qry = pkt->query;
+	question_t *q = qry->question;
+	dns_response_t* res = pkt->response;
+
+
+
+
+    hdr->id = ntohs(hdr->id);
+    hdr->rcode = ntohl(hdr->rcode);
+    hdr->qdcount = ntohs(hdr->qdcount);
+    hdr->ancount = ntohs(hdr->ancount);
+
+    q->qtype = ntohs(q->qtype);
+    q->qclass = ntohs(q->qclass);
+
+    if (res) {
+    	answer_t* ans = res->answer;
+    	ans->atype = ntohs(ans->atype);
+        ans->aclass = ntohs(ans->aclass);
+        ans->attl = ntohs(ans->attl);
+        ans->ardlength = ntohs(ans->ardlength);
+    }
+}
+
+void free_pkt(data_packet_t* pkt) {
+	free(pkt->query->question);
+	free(pkt->query->qname);
+	free(pkt->query);
+	free(pkt->header);
+	if (pkt->response) {
+		free(pkt->response->name);
+		free(pkt->response->answer);
+		free(pkt->response->data);
+		free(pkt->response);
+	}
+	free(pkt);
+}
+
+/*
+int main() {
+	data_packet_t* pkt = q_pkt_maker("video.cs.cmu.edu");
+	char buf[BUFSIZE];
+	pkt2buf(buf, pkt);
+	return 0;
+}
+*/

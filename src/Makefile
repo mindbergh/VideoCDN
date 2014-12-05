@@ -18,11 +18,19 @@ default: proxy
 
 proxy: $(objects)
 		$(CC) -o $@ $^ $(LDFLAGS)
+mydns: mydns.o
+		$(CC) -o $@ $^ $(LDFLAGS)
+nameserver: nameserver.o mydns.o
+	    $(CC) -o $@ $^ $(LDFLAGS)
+dnstest: dnstest.o mydns.o
+		$(CC) -o $@ $^ $(LDFLAGS)
 
 proxy.o: proxy.c pool.h mydns.h debug.h io.h media.h conn.h timer.h log.h parse_xml.h
 pool.o: pool.c pool.h
 io.o: io.c io.h
-mydns.o: mydns.c mydns.h
+mydns.o: mydns.c mydns.h debug.h
+nameserver.o: nameserver.c nameserver.h mydns.h debug.h
+dnstest.o: dnstest.c mydns.h
 media.o: media.c media.h
 conn.o: conn.c conn.h
 parse_xml.o: parse_xml.c parse_xml.h
@@ -36,7 +44,7 @@ clean:
 	rm -f *.o
 
 clobber: clean
-	rm -f proxy
+	rm -f proxy mydns nameserver dnstest
 
 handin:
 	make clean; cd ..; tar cvf handin.tar handin --exclude test

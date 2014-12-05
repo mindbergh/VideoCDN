@@ -60,6 +60,10 @@ void close_clit(int clit_idx);
 void close_serv(int serv_idx);
 int close_socket(int);
 void clean_state(pool_t *, int);
+int get_client(uint32_t addr);
+int update_client(int sock, uint32_t);
+int get_server(int sock);
+int update_server(int sock, uint32_t);
 #endif
 
 

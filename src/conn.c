@@ -75,6 +75,7 @@ int add_conn(int clit_idx, int serv_idx) {
 			new_conn->t_put = 0;
 			new_conn->avg_put = 0;
 			new_conn->cur_bitrate = 10; // The lowest bitrate
+			new_conn->alive = 1;
 			conn[i] = new_conn;
 
 			pool.cur_conn++;
@@ -88,6 +89,22 @@ int add_conn(int clit_idx, int serv_idx) {
 	/* failed to add connection */
 	return -1;
 }
+
+int update_conn(int clit_idx, int serv_idx) {
+    int i = 0 ;
+    conn_t** conn_l = pool.conn_l;
+    for ( i = 0 ; i < FD_SETSIZE; i++) {
+        if (conn_l[i] == NULL)
+            continue;
+        if (conn_l[i]->serv_idx == serv_idx 
+            && conn_l[i]->clit_idx == clit_idx) {
+            conn_l[i]->alive = 1;
+        }
+    }
+    DPRINTF("wants to update, but no connection found!\n");
+    return -1;
+}
+
 
 /** @brief 
  *	@param fd 
@@ -110,9 +127,8 @@ void close_conn(int conn_idx) {
     	close_serv(del_conn->serv_idx);
     if (clit->num_serv == 0)
     	close_clit(del_conn->clit_idx);
-    free(del_conn);
-    pool.conn_l[conn_idx] = NULL;
-    pool.cur_conn--;
+
+    del_conn->alive = 0;
 }; 
 
 
@@ -136,5 +152,6 @@ int update_thruput(int sum, conn_t* conn) {
 	}
 	conn->avg_put = (int)new_thruput;
 	DPRINTF(" New avg_put:%d\n", conn->avg_put);
+	conn->cur_bitrate = conn->avg_put;
 	return (int)new_thruput; 
 }

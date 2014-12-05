@@ -139,7 +139,15 @@ int main(int argc, char **argv) {
             DPRINTF("New client %d accepted\n", client_sock);
             int nonblock_flags = fcntl(client_sock,F_GETFL,0);
             fcntl(client_sock, F_SETFL,nonblock_flags|O_NONBLOCK);
-            add_client(client_sock, cli_addr.sin_addr.s_addr);
+            
+            if (get_client(cli_addr.sin_addr.s_addr) == -1) {
+                // new client arrive!
+                DPRINTF("New Client add! Sock:%d\n",client_sock);
+                add_client(client_sock, cli_addr.sin_addr.s_addr);
+            } else {
+                DPRINTF("Old Client arrive, update it's info!\n");
+                update_client(client_sock,cli_addr.sin_addr.s_addr);
+            }
         }
         if(pool.nready>0) {
             DPRINTF("About to serve client\n");
@@ -219,7 +227,6 @@ void client2server(int clit_idx)
     serv_list_t *serv_info;
     struct sockaddr_in sa;
 
-
     /* Read request line and headers */
 
     io_recvline_block(fd, buf, MAXLINE);
@@ -253,12 +260,19 @@ void client2server(int clit_idx)
     if (pool.www_ip) {
         inet_pton(AF_INET, pool.www_ip, &(sa.sin_addr));
         DPRINTF("about to get conn\n");
-        if((conn_idx = client_get_conn(fd, sa.sin_addr.s_addr)) == -1) {
+
+        if ((conn_idx = client_get_conn(fd, sa.sin_addr.s_addr)) == -1) {
             serv_fd = open_server_socket(pool.fake_ip,pool.www_ip,port);
             serv_idx = add_server(serv_fd,sa.sin_addr.s_addr);
             DPRINTF("new server:%d add!\n",serv_fd);
             conn_idx = add_conn(clit_idx, serv_idx);
-            DPRINTF("new connection:%d add!\n",conn_idx);
+            DPRINTF("new connection:%d add!\n",conn_idx);     
+        } else {
+            if ( pool.conn_l[conn_idx]->alive == 0 )
+                serv_fd = open_server_socket(pool.fake_ip,pool.www_ip,port);
+                update_server(serv_fd,sa.sin_addr.s_addr);
+                serv_idx = get_server(serv_fd);
+                update_conn(clit_idx,serv_idx);
         }
     } else {
         resolve(host, port, NULL, &servinfo);
@@ -399,7 +413,7 @@ void server2client(int serv_idx) {
         update_thruput(res.length,conn);
     }
     loggin(conn); 
-    
+
     buf_internet = (char *)malloc(res.length + 1);
     
     if (res.type == TYPE_XML) {

@@ -223,7 +223,9 @@ void client2server(int clit_idx)
     
     int fd = client->fd;
     int serv_fd;
-    
+    struct timeval new_start;
+    gettimeofday(&new_start, NULL);
+
     //struct timeval start;
     struct addrinfo *servinfo;
     
@@ -305,6 +307,10 @@ void client2server(int clit_idx)
     
     conn = GET_CONN_BY_IDX(conn_idx);
 
+    gettimeofday(&(conn->end),NULL);
+    conn->start.tv_usec = new_start.tv_usec;
+    conn->start.tv_sec = new_start.tv_sec;
+    //gettimeofday(&(conn->start),NULL);
 
     if (client_close == -1) {
         DPRINTF("read_requesthdrs return error!!!\n");
@@ -316,8 +322,6 @@ void client2server(int clit_idx)
     strcpy(conn->cur_file,path);
     conn->cur_file[strlen(conn->cur_file)] = '\0';
     conn->cur_size = 0;
-    gettimeofday(&(conn->end),NULL);
-    gettimeofday(&(conn->start),NULL);
 
     server = GET_SERV_BY_IDX(conn->serv_idx);
     serv_fd = server->fd;
@@ -515,7 +519,7 @@ void server2client(int serv_idx) {
     thru_idx = get_thru_by_addrs(client->addr, server->addr);
     thru = GET_THRU_BY_IDX(thru_idx);
     if(res.type == TYPE_F4F) {
-
+        fprintf(stderr, "chunk size:%ld\n", res.length);
         update_thruput(res.length, conn, thru);
         //update_thruput_global(conn);
     }

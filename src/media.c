@@ -95,23 +95,30 @@ void modi_path(char* path, int thruput, conn_t* conn) {
 	char* vod_index = NULL;
 	char* seg_index = NULL;
 	char rate[32];
-	vod_index = strstr(path,"/vod/");
-	seg_index = strstr(path,"Seg");
+	char* slash;
 
+	fprintf(stderr, "old path:%s\n",path);
+
+	vod_index = strstr(path,"/vod/");
+	slash = vod_index ;
+	seg_index = strstr(path,"Seg");
+	while( strstr(slash+1,"/") != NULL) {
+		slash = strstr(slash+1,"/");
+	}
 	/* check if need to modify bitrate in uri */
 	if (seg_index != NULL) {
 		//fprintf(stderr, "old path:%s\n",path );
-		strncpy(buffer,path,vod_index-path+5);
+		strncpy(buffer,path,slash-path + 1);
 		
 		sprintf(rate, "%d", thruput);
 		strcat(buffer,rate);
 		strcat(buffer,seg_index);
 		memset(path,0,MAXLINE);
 		strcpy(path,buffer);
-		//fprintf(stderr, "new path:%s\n",path );
 		strcpy(conn->cur_file,path);
 		conn->cur_file[strlen(path)] = '\0';
 	} 
+	fprintf(stderr, "new path:%s\n",path );		
 }
 
 int isVideo(char *path) {

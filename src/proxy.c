@@ -118,7 +118,6 @@ int main(int argc, char **argv) {
         pool.nready = select(pool.maxfd + 1, &pool.ready_read,
                              &pool.ready_write, NULL, NULL);
         
-        
         //DPRINTF("nready = %d\n", pool.nready);
 
         if (pool.nready == -1) {
@@ -174,7 +173,8 @@ void serve_servers() {
         if (server_l[i] == NULL)
             continue;
         server = server_l[i];
-        if(FD_ISSET(server->fd, &(pool.ready_read))) {
+        if(FD_ISSET(server->fd, &(pool.ready_read)) 
+            && FD_ISSET(server->fd,&pool.ready_write)) {
             server2client(i);
             pool.nready--;
         }
@@ -192,7 +192,8 @@ void serve_clients() {
             continue;
 
         client = client_l[i];
-        if(FD_ISSET(client->fd, &(pool.ready_read))) {
+        if(FD_ISSET(client->fd, &(pool.ready_read)) 
+            && FD_ISSET(client->fd, &(pool.ready_write))) {
             DPRINTF("Client fd = %d, index = %d\n", client->fd, i);
             client2server(i);
             pool.nready--;

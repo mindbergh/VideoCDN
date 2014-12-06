@@ -90,7 +90,7 @@ serv_list_t* serv_get(struct sockaddr_in *serv) {
 	return NULL;
 }
 
-void modi_path(char* path, int thruput) {
+void modi_path(char* path, int thruput, conn_t* conn) {
 	char buffer[MAXLINE] ={0};
 	char* vod_index = NULL;
 	char* seg_index = NULL;
@@ -109,6 +109,8 @@ void modi_path(char* path, int thruput) {
 		memset(path,0,MAXLINE);
 		strcpy(path,buffer);
 		fprintf(stderr, "new path:%s\n",path );
+		strcpy(conn->cur_file,path);
+		conn->cur_file[strlen(path)] = '\0';
 	} 
 }
 

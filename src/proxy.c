@@ -348,7 +348,7 @@ void client2server(int clit_idx)
         }
         fprintf(stderr, "chosen_rate is %d\n", chosen_rate);
         conn->cur_bitrate = chosen_rate;
-        modi_path(path, chosen_rate);
+        modi_path(path, chosen_rate, conn);
     }
     
     

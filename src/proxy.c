@@ -346,6 +346,7 @@ void client2server(int clit_idx)
         if (chosen_rate <= 0) {
             chosen_rate = smallest;
         }
+        fprintf(stderr, "chosen_rate is %d\n", chosen_rate);
         conn->cur_bitrate = chosen_rate;
         modi_path(path, chosen_rate);
     }

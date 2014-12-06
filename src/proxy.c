@@ -758,10 +758,15 @@ void read_responeshdrs(int serv_fd, int clit_fd, response_t* res) {
         len = strlen(buf);
         
 
-        if (len == 0)
+        if (len == 0) {
+            fprintf(stderr, "read len = 0 s2c\n");
             return;
+        }
 
-        if (buf[len - 1] != '\n') return;
+        if (buf[len - 1] != '\n') {
+            fprintf(stderr, "last char !=\\n s2c\n");
+            return;
+        }
 
         //printf("Receive line:%s\n", buf);
 

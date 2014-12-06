@@ -118,7 +118,6 @@ int main(int argc, char **argv) {
         pool.nready = select(pool.maxfd + 1, &pool.ready_read,
                              &pool.ready_write, NULL, NULL);
         
-        
         //DPRINTF("nready = %d\n", pool.nready);
 
         if (pool.nready == -1) {
@@ -153,11 +152,11 @@ int main(int argc, char **argv) {
             }*/
         }
         if(pool.nready>0) {
-            DPRINTF("About to serve client\n");
+            //DPRINTF("About to serve client\n");
             serve_clients();
         }
         if(pool.nready>0) {
-            DPRINTF("About to serve server\n");
+            //DPRINTF("About to serve server\n");
             serve_servers();
         }
     }
@@ -238,8 +237,6 @@ void client2server(int clit_idx)
     /* Read request line and headers */
 
     io_recvline_block(fd, buf, MAXLINE);
-
-    //printf("Request: %s\n", buf);
 
     if (strcmp(buf, "") == 0) {
         DPRINTF("Empty buffer\n");
@@ -433,7 +430,8 @@ void server2client(int serv_idx) {
 
     read_responeshdrs(server_fd, client_fd, &res);
     fprintf(stderr, "server2client: RES TPYE: %d\n", res.type);
-    if (res.length == 0) {
+    if (res.length == 0 || res.type == 0) {
+        fprintf(stderr, "in response, length == 0 or type = 0\n");
         close_conn(conn_idx);
         return;
     }
@@ -708,7 +706,7 @@ int read_requesthdrs(int clit_fd, char *host, int* port) {
         strcpy(key, buf);
         strcpy(value, tmp + 2);
         value[strlen(value) - 2] = '\0';
-        DPRINTF("key = %s, value = %s\n", key, value);
+        fprintf(stderr, "key = %s, value = %s\n", key, value);
         *tmp = ':';
         if (!strcmp(key, "Host")) {
             DPRINTF("get host!\n");
@@ -752,17 +750,20 @@ void read_responeshdrs(int serv_fd, int clit_fd, response_t* res) {
     res->type = TYPE_MSC;
     res->length = 0;
 
-    printf("entering read res hdrs:%d\n", serv_fd);
+    DPRINTF("entering read res hdrs:%d\n", serv_fd);
 
     while (1) {
         io_recvline_block(serv_fd, buf, MAXLINE);
         len = strlen(buf);
         
 
-        if (len == 0)
+        if (len == 0) {
             return;
+        }
 
-        if (buf[len - 1] != '\n') return;
+        if (buf[len - 1] != '\n') {
+            return;
+        }
 
         //printf("Receive line:%s\n", buf);
 
@@ -775,8 +776,9 @@ void read_responeshdrs(int serv_fd, int clit_fd, response_t* res) {
         strncpy(tmp_buf + tmp_cur_size, buf, len);
         tmp_cur_size += len;
 
-        if (!strcmp(buf, "\r\n"))
+        if (!strcmp(buf, "\r\n")) {
             break;
+        }
         tmp = strchr(buf, ':');
         if (NULL == tmp)
             continue;
@@ -784,7 +786,7 @@ void read_responeshdrs(int serv_fd, int clit_fd, response_t* res) {
         strcpy(key, buf);
         strcpy(value, tmp + 2);
         value[strlen(value) - 2] = '\0';
-        DPRINTF("key = %s, value = %s\n", key, value);
+        fprintf(stderr,"key = %s, value = %s\n", key, value);
         *tmp = ':';
         if (!strcmp(key, "Content-Type")) {
             assert(res->type == TYPE_MSC);

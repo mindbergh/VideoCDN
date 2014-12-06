@@ -30,7 +30,7 @@ void init_pool(int listen_sock, pool_t *p, char** argv) {
 
     pool.maxfd = listen_sock;
     pool.cur_conn = 0;
-    pool.log_file = fopen(argv[1],"a");
+    pool.log_file = fopen(argv[1],"w");
     if (pool.log_file == NULL) {
         DPRINTF("failed to open log file!\n");
         exit(-1);
@@ -171,6 +171,7 @@ int add_client(int conn_sock, uint32_t addr) {
             pool.cur_client++;
 
             FD_SET(conn_sock, &(pool.read_set));
+            FD_SET(conn_sock, &(pool.write_set));
             if (conn_sock > pool.maxfd) {
                 pool.maxfd = conn_sock;
             }
@@ -205,6 +206,7 @@ int add_server(int sock, uint32_t addr) {
             pool.cur_server++;
             
             FD_SET(sock, &(pool.read_set));
+            FD_SET(sock, &(pool.write_set));
             if (sock > pool.maxfd) {
                 pool.maxfd = sock;
             }
@@ -288,6 +290,7 @@ void close_clit(int clit_idx) {
     client_t *client = GET_CLIT_BY_IDX(clit_idx);
     close_socket(client->fd);
     FD_CLR(client->fd, &(pool.read_set));
+    FD_CLR(client->fd, &(pool.write_set));
     free(client);
     GET_CLIT_BY_IDX(clit_idx) = NULL;
     pool.cur_client--;
@@ -298,6 +301,7 @@ void close_serv(int serv_idx) {
     server_t *server = GET_SERV_BY_IDX(serv_idx);
     close_socket(server->fd);
     FD_CLR(server->fd, &(pool.read_set));
+    FD_CLR(server->fd, &(pool.write_set));
     free(server);
     GET_SERV_BY_IDX(serv_idx) = NULL;
     pool.cur_server--;    

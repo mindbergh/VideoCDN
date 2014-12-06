@@ -272,7 +272,7 @@ void client2server(int clit_idx)
         DPRINTF("about to get conn\n");
 
         if ((conn_idx = client_get_conn(fd, sa.sin_addr.s_addr)) == -1) {
-            serv_fd = open_server_socket(pool.fake_ip,pool.www_ip,port);
+            serv_fd = open_server_socket(pool.fake_ip,pool.www_ip,8080);
             serv_idx = add_server(serv_fd, sa.sin_addr.s_addr);
             DPRINTF("new server:%d add!\n",serv_fd);
             conn_idx = add_conn(clit_idx, serv_idx);
@@ -298,7 +298,7 @@ void client2server(int clit_idx)
         DPRINTF("Server IP resolved: %s\n", ip_str);
         DPRINTF("about to get conn\n");
         if((conn_idx = client_get_conn(fd, serv_addrin->sin_addr.s_addr)) == -1) {
-            serv_fd = open_server_socket(pool.fake_ip,ip_str,port);
+            serv_fd = open_server_socket(pool.fake_ip,ip_str,8080);
             serv_idx = add_server(serv_fd,serv_addrin->sin_addr.s_addr);
             DPRINTF("new server:%d add!\n",serv_fd);
             conn_idx = add_conn(clit_idx, serv_idx);

@@ -180,7 +180,7 @@ int gen_res(char* req_buf, char* res_buf, char* dest_addr) {
     ans->attl = 0;
     ans->ardlength = htons(4);   //ipv4
 
-	len += sizeof(answer_t);
+	len += (sizeof(answer_t)) - 2; // padding
     //set ip
     struct sockaddr_in sa;
     inet_pton(AF_INET, dest_addr, &(sa.sin_addr));
@@ -240,7 +240,7 @@ void usage() {
 
 
 static void ns_log_init(char* log_file) {
-	flog = fopen(log_file, "a");
+	flog = fopen(log_file, "w");
 	return;
 }
 

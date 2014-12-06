@@ -47,6 +47,14 @@ int init_mydns(const char *dns_ip, unsigned int dns_port, const char *local_ip) 
   dns.servaddr.sin_port = htons(dns_port);
   inet_pton(AF_INET, dns_ip, &(dns.servaddr.sin_addr));
 
+
+
+	fprintf(stderr, "hdr:%u\n", sizeof(header_t));
+	fprintf(stderr, "q:%u\n", sizeof(question_t));
+	fprintf(stderr, "ans:%u\n", sizeof(answer_t));
+
+
+
   DPRINTF("Exiting init_mydns\n");
   return 0;
 }
@@ -206,7 +214,7 @@ int parse_res(char* req_buf, char* res_buf, struct addrinfo* tmp, int pkt_len) {
 
 
 	qname = (char*)(req_buf + sizeof(header_t));
-	offest = pkt_len + strlen(qname)+1 + sizeof(answer_t);
+	offest = pkt_len + strlen(qname)+1 + sizeof(answer_t) - 2; // padding
 	ip = res_buf + offest;
 	ip_int = (uint32_t*)ip;
 	((struct sockaddr_in*)tmp->ai_addr)->sin_addr.s_addr = *ip_int;

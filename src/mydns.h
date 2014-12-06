@@ -55,7 +55,7 @@ typedef struct dns_s{
  *			of resource records in the additional records section.
  */
 typedef struct header_s {
-    uint16_t id;
+    uint16_t id:16;
 
     uint8_t rd :1;
     uint8_t tc :1;  
@@ -67,22 +67,23 @@ typedef struct header_s {
     uint8_t z :3;
     uint8_t ra :1;
 
-    uint16_t qdcount;
-    uint16_t ancount;
-    uint16_t nscount;
-    uint16_t arcount;
+    uint16_t qdcount:16;
+    uint16_t ancount:16;
+    uint16_t nscount:16;
+    uint16_t arcount:16;
 } header_t;
 
 typedef struct question_s {
-    uint16_t qtype;
-    uint16_t qclass;
+    uint16_t qtype:16;
+    uint16_t qclass:16;
 } question_t;
 
 typedef struct answer_s {
-    uint16_t atype;
-    uint16_t aclass;
-    uint16_t attl;
-    uint16_t ardlength;
+    uint16_t atype:16;
+    uint16_t aclass:16;
+    uint32_t attl:32;
+    uint16_t ardlength:16;
+    //uint16_t data:16;
 } answer_t;
 
 typedef struct dns_response_s {

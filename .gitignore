@@ -22,7 +22,7 @@
 *.hex
 *.sh
 proxy
-
+nameserver
 
 # map
 *.map

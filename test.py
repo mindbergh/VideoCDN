@@ -12,7 +12,7 @@ def get_requests(url):
     return requests.get(url).content
 
 def get_curl(url):
-    return check_both("curl -f -s -x http://1.0.0.1:9999 %s" % url, shouldPrint=False)[0][0]
+    return check_both("curl -f -s %s" % url, shouldPrint=False)[0][0]
 
 
 def check_both(args, shouldPrint=True, check=True):
@@ -41,8 +41,8 @@ def check_both(args, shouldPrint=True, check=True):
 
 
 def do():
-    ip = "3.0.0.1"
-    port = "8080"
+    ip = "1.0.0.1"
+    port = "9999"
     num_gets = 5
     content = get('http://%s:%s/vod/big_buck_bunny.f4m' % (ip, port))
     

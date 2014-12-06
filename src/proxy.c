@@ -214,6 +214,7 @@ void client2server(int clit_idx)
     
     server_t* server = NULL;
     client_t* client = GET_CLIT_BY_IDX(clit_idx);
+    //fprintf(stderr, "clit add : %x\n", client->addr);
     conn_t *conn;
     thruputs_t* thru;
     int conn_idx, serv_idx, thru_idx;
@@ -234,7 +235,7 @@ void client2server(int clit_idx)
 
     io_recvline_block(fd, buf, MAXLINE);
 
-    DPRINTF("Request: %s\n", buf);
+    printf("Request: %s\n", buf);
 
     if (strcmp(buf, "") == 0) {
         DPRINTF("Empty buffer\n");
@@ -260,13 +261,13 @@ void client2server(int clit_idx)
 		return;
     }
     sprintf(port_str, "%d", port);
-    DPRINTF("www_ip:%s\n",pool.www_ip);
+    //printf("www_ip:%s\n",pool.www_ip);
     if (pool.www_ip) {
         inet_pton(AF_INET, pool.www_ip, &(sa.sin_addr));
         DPRINTF("about to get conn\n");
 
         if ((conn_idx = client_get_conn(fd, sa.sin_addr.s_addr)) == -1) {
-            serv_fd = open_server_socket(pool.fake_ip,pool.www_ip,port);
+            serv_fd = open_server_socket(pool.fake_ip,pool.www_ip,8080);
             serv_idx = add_server(serv_fd, sa.sin_addr.s_addr);
             DPRINTF("new server:%d add!\n",serv_fd);
             conn_idx = add_conn(clit_idx, serv_idx);
@@ -318,7 +319,9 @@ void client2server(int clit_idx)
 
     server = GET_SERV_BY_IDX(conn->serv_idx);
     serv_fd = server->fd;
+    fprintf(stderr, "Client fd = %d;;Serv fd = %d\n",client->fd, serv_fd);
     if ((thru_idx = get_thru_by_addrs(client->addr, server->addr)) == -1) {
+        //fprintf(stderr, "get_thru return 0, clit:%x;serv:%x\n", client->addr, server->addr);
         thru_idx = add_thru(client->addr, server->addr);
     }
     thru = GET_THRU_BY_IDX(thru_idx);
@@ -333,6 +336,7 @@ void client2server(int clit_idx)
         int chosen_rate = 0;
         int avg_thru = thru->avg_put / 1.5;
         int smallest = 100;
+        //fprintf(stderr, "thru->avg_put: %d\n", thru->avg_put);
         while (b) {
             if (b->bitrate > chosen_rate && b->bitrate <= avg_thru) {
                 chosen_rate = b->bitrate;
@@ -340,13 +344,13 @@ void client2server(int clit_idx)
             if (b->bitrate < smallest) {
                 smallest = b->bitrate;
             }
-            //printf("bitrates: %d\n", b->bitrate);
+            //printf("avg_thru: %d;;bitrates: %d\n",avg_thru, b->bitrate);
             b = b->next;
         }
         if (chosen_rate <= 0) {
             chosen_rate = smallest;
         }
-        fprintf(stderr, "chosen_rate is %d\n", chosen_rate);
+        //fprintf(stderr, "chosen_rate is %d\n", chosen_rate);
         conn->cur_bitrate = chosen_rate;
         modi_path(path, chosen_rate, conn);
     }
@@ -362,7 +366,7 @@ void client2server(int clit_idx)
 
 	/* Forward request */
 
-    
+        
     sprintf(buf_internet, "GET %s HTTP/1.1\r\n", path);
     io_sendn(serv_fd, buf_internet, strlen(buf_internet));
 	sprintf(buf_internet, "Host: %s\r\n", host);
@@ -414,7 +418,7 @@ void server2client(int serv_idx) {
     response_t res;
     bit_t* this_bitrates;
     
-    fprintf(stderr, "server server!!!\n");
+    fprintf(stderr, "server2client!!!\n");
 
     server = GET_SERV_BY_IDX(serv_idx);
     server_fd = server->fd;
@@ -431,7 +435,7 @@ void server2client(int serv_idx) {
     client_fd = client->fd;
 
     read_responeshdrs(server_fd, client_fd, &res);
-
+    //fprintf(stderr, "server2client: RES TPYE: %d\n", res.type);
     if (res.length == 0) {
         close_conn(conn_idx);
         return;
@@ -470,10 +474,10 @@ void server2client(int serv_idx) {
     
         thru_idx = get_thru_by_addrs(client->addr, server->addr);
         thru = GET_THRU_BY_IDX(thru_idx);
-        if(res.type == TYPE_F4F) {
-            update_thruput(res.length, conn, thru);
+        
+        //update_thruput(res.length, conn, thru);
             //update_thruput_global(conn);
-        }
+        
         loggin(conn, thru); 
 
         n = io_sendn(client_fd, res.hdr_buf, res.hdr_len);  
@@ -517,6 +521,7 @@ void server2client(int serv_idx) {
     thru_idx = get_thru_by_addrs(client->addr, server->addr);
     thru = GET_THRU_BY_IDX(thru_idx);
     if(res.type == TYPE_F4F) {
+
         update_thruput(res.length, conn, thru);
         //update_thruput_global(conn);
     }
@@ -676,16 +681,16 @@ int read_requesthdrs(int clit_fd, char *host, int* port) {
         
 
         if (len == 0) {
-            DPRINTF("read header with 0 len\n");
+            //printf("read header with 0 len\n");
             return 1;
         }
 
         if (buf[len - 1] != '\n') {
-            DPRINTF("read header without \\n at end\n");
+            //printf("read header without \\n at end\n");
             return -1;
         }
 
-        DPRINTF("Receive line:%s\n", buf);
+        //printf("Receive line:%s\n", buf);
 
         int desirable_size = tmp_cur_size + len;
         if (desirable_size > tmp_max_size) {
@@ -749,7 +754,7 @@ void read_responeshdrs(int serv_fd, int clit_fd, response_t* res) {
     res->type = TYPE_MSC;
     res->length = 0;
 
-    DPRINTF("entering read res hdrs:%d\n", serv_fd);
+    printf("entering read res hdrs:%d\n", serv_fd);
 
     while (1) {
         io_recvline_block(serv_fd, buf, MAXLINE);
@@ -761,7 +766,7 @@ void read_responeshdrs(int serv_fd, int clit_fd, response_t* res) {
 
         if (buf[len - 1] != '\n') return;
 
-        DPRINTF("Receive line:%s\n", buf);
+        //printf("Receive line:%s\n", buf);
 
         int desirable_size = tmp_cur_size + len;
         if (desirable_size > tmp_max_size) {

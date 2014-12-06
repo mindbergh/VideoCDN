@@ -157,7 +157,7 @@ int update_thruput(int sum, conn_t* conn, thruputs_t* thru) {
 		new_thruput = (alpha * new_thruput + (1.0 - alpha) * curr_thruput);
 	}
 	thru->avg_put = (int)new_thruput;
-	DPRINTF(" New avg_put:%d\n", thru->avg_put);
+	fprintf(stderr, " New avg_put:%d\n", thru->avg_put);
 	return (int)new_thruput; 
 }
 

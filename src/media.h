@@ -39,7 +39,7 @@ void init_serv_list(void);
 serv_list_t* serv_add(struct sockaddr_in *);
 void serv_del(struct sockaddr_in *);
 serv_list_t* serv_get(struct sockaddr_in *);
-void modi_path(char* path, int thruput);
+void modi_path(char* path, int thruput, conn_t*);
 int isVideo(char *);
 
 

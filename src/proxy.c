@@ -348,7 +348,7 @@ void client2server(int clit_idx)
         }
         fprintf(stderr, "chosen_rate is %d\n", chosen_rate);
         conn->cur_bitrate = chosen_rate;
-        modi_path(path, chosen_rate);
+        modi_path(path, chosen_rate, conn);
     }
     
     
@@ -474,7 +474,7 @@ void server2client(int serv_idx) {
             update_thruput(res.length, conn, thru);
             //update_thruput_global(conn);
         }
-        //loggin(conn, thru); 
+        loggin(conn, thru); 
 
         n = io_sendn(client_fd, res.hdr_buf, res.hdr_len);  
         if (n != res.hdr_len) {

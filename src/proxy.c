@@ -779,8 +779,10 @@ void read_responeshdrs(int serv_fd, int clit_fd, response_t* res) {
         strncpy(tmp_buf + tmp_cur_size, buf, len);
         tmp_cur_size += len;
 
-        if (!strcmp(buf, "\r\n"))
+        if (!strcmp(buf, "\r\n")) {
+            fprintf(stderr, "start from \\r\\n\n");
             break;
+        }
         tmp = strchr(buf, ':');
         if (NULL == tmp)
             continue;

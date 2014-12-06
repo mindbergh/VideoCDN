@@ -36,8 +36,11 @@ char nolist_buf[MAXLINE];
 static const char *user_agent_hdr = "User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:10.0.3) Gecko/20120305 Firefox/10.0.3\r\n";
 static const char *accept_hdr = "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n";
 static const char *accept_encoding_hdr = "Accept-Encoding: gzip,deflate,sdch\r\n";
-static const char *connection_hdr = "Connection: Keep-Alive\r\n";
-static const char *pxy_connection_hdr = "Proxy-Connection: Keep-Alive\r\n\r\n";
+static const char *connection_hdr = "Connection: Keep-alive\r\n";
+static const char *pxy_connection_hdr = "Proxy-Connection: Keep-alive\r\n\r\n";
+
+static const char *VIDEO_HOST = "video.cs.cmu.edu";
+static const char *VIDEO_PORT = "8080";
 
 
 /* Function prototype */
@@ -45,13 +48,13 @@ int parse_uri(char *uri, char *host, int *port, char *path);
 void clienterror(int fd, char *cause, char *errnum, 
 		 char *shortmsg, char *longmsg);
 int read_requesthdrs(int clit_fd, char *host, int* port);
-void read_responeshdrs(int serv_fd, int clit_fd, response_t* res);
+void read_responeshdrs(int serv_fd, response_t* res);
 void serve_clients();
 void serve_servers();
 void client2server(int);
 void server2client(int);
 bit_t* process_list(int serv_fd, int length); 
-void ask_for_nolist(int serv_fd);
+void ask_for_nolist(int serv_fd, int clit_idx, int close);
 void usage();
 
 
@@ -227,10 +230,10 @@ void client2server(int clit_idx)
 
     //struct timeval start;
     struct addrinfo *servinfo;
-    
+    struct sockaddr_in sa;
     int client_close = 0;
     
-    struct sockaddr_in sa;
+    
 
     char ip_str[INET_ADDRSTRLEN];
 
@@ -273,22 +276,9 @@ void client2server(int clit_idx)
             DPRINTF("new server:%d add!\n",serv_fd);
             conn_idx = add_conn(clit_idx, serv_idx);
             DPRINTF("new connection:%d add!\n",conn_idx);     
-        } /*else {
-            conn = GET_CONN_BY_IDX(conn_idx);
-            if ( conn->alive == 0 ) {
-                serv_fd = open_server_socket(pool.fake_ip,pool.www_ip,port);
-                serv_idx = conn->serv_idx;
-                server = GET_SERV_BY_IDX(serv_idx);
-                server->fd = serv_fd;
-                server->num_clit++;
-                client->num_serv++;
-                //update_server(serv_fd, sa.sin_addr.s_addr);
-                //serv_idx = get_server(serv_fd);
-                update_conn(clit_idx,serv_idx);
-            }
-        }*/
+        } 
     } else {
-        resolve(host, port_str, NULL, &servinfo);
+        resolve(VIDEO_HOST, VIDEO_PORT, NULL, &servinfo);
         struct sockaddr_in *serv_addrin = (struct sockaddr_in*)servinfo->ai_addr;
         inet_ntop(AF_INET, &(serv_addrin->sin_addr), ip_str, sizeof(ip_str));
         DPRINTF("Server IP resolved: %s\n", ip_str);
@@ -428,7 +418,7 @@ void server2client(int serv_idx) {
     client = GET_CLIT_BY_IDX(conn->clit_idx);
     client_fd = client->fd;
 
-    read_responeshdrs(server_fd, client_fd, &res);
+    read_responeshdrs(server_fd, &res);
     fprintf(stderr, "server2client: RES TPYE: %d\n", res.type);
     if (res.length == 0 || res.type == 0) {
         fprintf(stderr, "in response, length == 0 or type = 0\n");
@@ -454,13 +444,23 @@ void server2client(int serv_idx) {
 
         if (this_bitrates != NULL) {
             printf("This is a listed XML\n");
+
+            thru_idx = get_thru_by_addrs(client->addr, server->addr);
+            thru = GET_THRU_BY_IDX(thru_idx);
+            
+            //update_thruput(res.length, conn, thru);
+                //update_thruput_global(conn);
+            
+            loggin(conn, thru); 
+
+            
             bitrates = this_bitrates;
             //free(buf_internet);
             //buf_internet = realloc(buf_internet, MAXLINE);
             free(res.hdr_buf);
             res.hdr_buf = NULL;
             free(buf_internet);
-            ask_for_nolist(server_fd);
+            ask_for_nolist(server_fd, conn->clit_idx, res.close);
             return;
         }
         printf("This is a non-listed XML\n");
@@ -468,13 +468,7 @@ void server2client(int serv_idx) {
 
         gettimeofday(&(conn->end), NULL);  /* update conn end time */
     
-        thru_idx = get_thru_by_addrs(client->addr, server->addr);
-        thru = GET_THRU_BY_IDX(thru_idx);
         
-        //update_thruput(res.length, conn, thru);
-            //update_thruput_global(conn);
-        
-        loggin(conn, thru); 
 
         n = io_sendn(client_fd, res.hdr_buf, res.hdr_len);  
         if (n != res.hdr_len) {
@@ -706,7 +700,7 @@ int read_requesthdrs(int clit_fd, char *host, int* port) {
         strcpy(key, buf);
         strcpy(value, tmp + 2);
         value[strlen(value) - 2] = '\0';
-        fprintf(stderr, "key = %s, value = %s\n", key, value);
+        //fprintf(stderr, "key = %s, value = %s\n", key, value);
         *tmp = ':';
         if (!strcmp(key, "Host")) {
             DPRINTF("get host!\n");
@@ -734,7 +728,7 @@ int read_requesthdrs(int clit_fd, char *host, int* port) {
  *  @param
  *  @return the type of the response
  */
-void read_responeshdrs(int serv_fd, int clit_fd, response_t* res) {
+void read_responeshdrs(int serv_fd, response_t* res) {
     int len = 0;
     //int i;
     char *tmp;
@@ -786,7 +780,7 @@ void read_responeshdrs(int serv_fd, int clit_fd, response_t* res) {
         strcpy(key, buf);
         strcpy(value, tmp + 2);
         value[strlen(value) - 2] = '\0';
-        fprintf(stderr,"key = %s, value = %s\n", key, value);
+        //fprintf(stderr,"key = %s, value = %s\n", key, value);
         *tmp = ':';
         if (!strcmp(key, "Content-Type")) {
             assert(res->type == TYPE_MSC);
@@ -800,6 +794,12 @@ void read_responeshdrs(int serv_fd, int clit_fd, response_t* res) {
             }
         } else if (!strcmp(key, "Content-Length")) {
             res->length = atoi(value);
+        } else if (!strcmp(key, "Connection")) {
+            if (!strcmp(value, "close")) {
+                res->close = 1;
+            } else {
+                res->close = 0;
+            }
         }
     }
     res->hdr_len = tmp_cur_size;
@@ -894,11 +894,52 @@ bit_t* process_list(int serv_fd, int length) {
 
 
 
-void ask_for_nolist(int serv_fd) {
-    io_sendn(serv_fd, nolist_buf, strlen(nolist_buf));
-    io_sendn(serv_fd, user_agent_hdr, strlen(user_agent_hdr));
-    io_sendn(serv_fd, accept_hdr, strlen(accept_hdr));
-    io_sendn(serv_fd, accept_encoding_hdr, strlen(accept_encoding_hdr));
-    io_sendn(serv_fd, connection_hdr, strlen(connection_hdr));
-    io_sendn(serv_fd, pxy_connection_hdr, strlen(pxy_connection_hdr));
+void ask_for_nolist(int serv_fd, int clit_idx, int close) {
+    if (!close) {
+        io_sendn(serv_fd, nolist_buf, strlen(nolist_buf));
+        io_sendn(serv_fd, user_agent_hdr, strlen(user_agent_hdr));
+        io_sendn(serv_fd, accept_hdr, strlen(accept_hdr));
+        io_sendn(serv_fd, accept_encoding_hdr, strlen(accept_encoding_hdr));
+        io_sendn(serv_fd, connection_hdr, strlen(connection_hdr));
+        io_sendn(serv_fd, pxy_connection_hdr, strlen(pxy_connection_hdr));
+    } else {
+        int serv_idx, conn_idx;
+        struct addrinfo *servinfo;
+        struct sockaddr_in sa;
+        char ip_str[INET_ADDRSTRLEN];
+        if (pool.www_ip) {
+            inet_pton(AF_INET, pool.www_ip, &(sa.sin_addr));
+            DPRINTF("about to get conn\n");
+
+            
+            serv_fd = open_server_socket(pool.fake_ip,pool.www_ip,8080);
+            serv_idx = add_server(serv_fd, sa.sin_addr.s_addr);
+            DPRINTF("new server:%d add!\n",serv_fd);
+            conn_idx = add_conn(clit_idx, serv_idx);
+            DPRINTF("new connection:%d add!\n",conn_idx);     
+    
+        } else {
+            resolve(VIDEO_HOST, VIDEO_PORT, NULL, &servinfo);
+            struct sockaddr_in *serv_addrin = (struct sockaddr_in*)servinfo->ai_addr;
+            inet_ntop(AF_INET, &(serv_addrin->sin_addr), ip_str, sizeof(ip_str));
+            DPRINTF("Server IP resolved: %s\n", ip_str);
+            DPRINTF("about to get conn\n");
+            
+            serv_fd = open_server_socket(pool.fake_ip,ip_str, 8080);
+            serv_idx = add_server(serv_fd,serv_addrin->sin_addr.s_addr);
+            DPRINTF("new server:%d add!\n",serv_fd);
+            conn_idx = add_conn(clit_idx, serv_idx);
+            DPRINTF("new connection:%d add!\n",conn_idx);
+            
+        }
+        io_sendn(serv_fd, nolist_buf, strlen(nolist_buf));
+        io_sendn(serv_fd, user_agent_hdr, strlen(user_agent_hdr));
+        io_sendn(serv_fd, accept_hdr, strlen(accept_hdr));
+        io_sendn(serv_fd, accept_encoding_hdr, strlen(accept_encoding_hdr));
+        io_sendn(serv_fd, connection_hdr, strlen(connection_hdr));
+        io_sendn(serv_fd, pxy_connection_hdr, strlen(pxy_connection_hdr));
+
+    }
+
 }
+

@@ -95,9 +95,9 @@ void modi_path(char* path, int thruput, conn_t* conn) {
 	char* vod_index = NULL;
 	char* seg_index = NULL;
 	char rate[32];
-	char* slash;
+	//char* slash;
 
-	fprintf(stderr, "old path:%s\n",path);
+//	fprintf(stderr, "old path:%s\n",path);
 
 	vod_index = strstr(path,"/vod/");
 	//slash = vod_index ;
@@ -118,7 +118,7 @@ void modi_path(char* path, int thruput, conn_t* conn) {
 		strcpy(conn->cur_file,path);
 		conn->cur_file[strlen(path)] = '\0';
 	} 
-	fprintf(stderr, "new path:%s\n",path );		
+	//fprintf(stderr, "new path:%s\n",path );		
 }
 
 int isVideo(char *path) {

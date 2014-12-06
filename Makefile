@@ -12,7 +12,7 @@ all:
 	cd src;make;make nameserver;mv proxy ../;mv nameserver ../
 
 clean:
-	rm proxy;cd src;make clean
+	rm proxy;rm nameserver;cd src;make clean
 
 clobber: clean
 	cd src; make clobber

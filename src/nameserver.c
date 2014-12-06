@@ -3,6 +3,8 @@
 #include "pool.h"
 #include "ospf.h"
 
+
+
 static char ref_pkt[BUFSIZE];
 static int ref_pkt_len;
 static const char* ref_host = "video.cs.cmu.edu";
@@ -11,6 +13,7 @@ static FILE* flog;
 static int buf_len(char* buf);
 static void ns_log_init(char* log_file);
 static void ns_log(char* clit_ip, char* host_name, char* res_ip);
+static void hexDump (char *desc, void *addr, int len);
 
 int main(int argc, char* argv[]) {
 	
@@ -47,7 +50,7 @@ int main(int argc, char* argv[]) {
 	}
 	
 	ns_log_init(log_file);
-
+	init_ref();
 
 	if ((fd = init_udp(ip,port,&read_set)) == -1) {
 		DPRINTF("fail to initialize UDP!\n");
@@ -57,6 +60,8 @@ int main(int argc, char* argv[]) {
 	OSPF_init(serv_file, lsa, rr_flag);
 	
 	while(1) {
+		fprintf(stderr, "NS: New Select!!\n");
+
 		ready_read = read_set;
 		nready = select(fd+1,&ready_read,NULL,NULL,NULL);
 		
@@ -122,18 +127,22 @@ void serve(int fd, int rr_flag) {
 	if((res = recvfrom(fd, req_buf,
 		BUFSIZE,0, (struct sockaddr *) &from, &fromlen)) != -1) {
 		inet_ntop(AF_INET, &(from.sin_addr), from_str, INET_ADDRSTRLEN); // get the clent address;
+		fprintf(stderr, "NS serve from_str:%s\n", from_str);
 		if ((parse_ret = parse(req_buf)) == -1) {
 			// invalid query
+			fprintf(stderr, "NS serve: invalid query\n");
 			pkt_len = gen_err(req_buf);
 			sendto(fd, req_buf, pkt_len, 0, (struct sockaddr *)&from, fromlen);
 		} else {
 			// generate response
+			fprintf(stderr, "NS serve: Valid query\n");
 			res_ip_str = route(from_str, rr_flag);
 			ns_log(from_str, ref_host, res_ip_str);
 			pkt_len = gen_res(req_buf, res_buf, res_ip_str);
 			// send response back to client
 			sendto(fd, res_buf, pkt_len, 0, (struct sockaddr *)&from, fromlen);
 		}
+		fprintf(stderr, "Sent res\n");
 	} else {
 		// read error from udp
 		DPRINTF("read error from UDP!\n");
@@ -223,7 +232,12 @@ int parse(char* buf) {
 		return -1;
 	}*/
 	int offset = sizeof(uint16_t);
-	if (!memcmp(buf+offset, ref_pkt+offset, ref_pkt_len-offset)) {
+	//fprintf(stderr, "ref_pkt_len = %d\n", ref_pkt_len);
+	//hexDump("Incoming", buf, ref_pkt_len);
+	//hexDump("REF", ref_pkt, ref_pkt_len);
+	//hexDump("test", "What the Fuck", 13);
+		
+	if (memcmp(buf+offset, ref_pkt+offset, ref_pkt_len-offset)) {
 		return -1;
 	}
 	return 0;
@@ -253,4 +267,49 @@ static void ns_log(char* clit_ip, char* host_name, char* res_ip) {
 	fprintf(flog, "%s\n", res_ip);
 	fflush(flog);
 	return;
+}
+
+
+
+static void hexDump (char *desc, void *addr, int len) {
+    int i;
+    unsigned char buff[17];
+    unsigned char *pc = (unsigned char*)addr;
+
+    // Output description if given.
+    if (desc != NULL)
+        fprintf(stderr,"%s:\n", desc);
+
+    // Process every byte in the data.
+    for (i = 0; i < len; i++) {
+        // Multiple of 16 means new line (with line offset).
+
+        if ((i % 16) == 0) {
+            // Just don't print ASCII for the zeroth line.
+            if (i != 0)
+                fprintf(stderr,"  %s\n", buff);
+
+            // Output the offset.
+            fprintf(stderr,"  %04x ", i);
+        }
+
+        // Now the hex code for the specific character.
+        fprintf(stderr," %02x", pc[i]);
+
+        // And store a printable ASCII character for later.
+        if ((pc[i] < 0x20) || (pc[i] > 0x7e))
+            buff[i % 16] = '.';
+        else
+            buff[i % 16] = pc[i];
+        buff[(i % 16) + 1] = '\0';
+    }
+
+    // Pad out last line if not exactly 16 characters.
+    while ((i % 16) != 0) {
+        fprintf(stderr,"   ");
+        i++;
+    }
+
+    // And print the final ASCII bit.
+    fprintf(stderr,"  %s\n", buff);
 }

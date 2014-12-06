@@ -46,6 +46,7 @@ typedef struct response_s {
 	int type;
 	char *hdr_buf;
 	int hdr_len;
+	int close;
 } response_t;
 	
 typedef struct thruputs_s {

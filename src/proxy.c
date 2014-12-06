@@ -240,8 +240,6 @@ void client2server(int clit_idx)
 
     io_recvline_block(fd, buf, MAXLINE);
 
-    fprintf(stderr,"Request: %s\n", buf);
-
     if (strcmp(buf, "") == 0) {
         DPRINTF("Empty buffer\n");
         return;
@@ -709,7 +707,7 @@ int read_requesthdrs(int clit_fd, char *host, int* port) {
         strcpy(key, buf);
         strcpy(value, tmp + 2);
         value[strlen(value) - 2] = '\0';
-        DPRINTF("key = %s, value = %s\n", key, value);
+        fprintf(stderr, "key = %s, value = %s\n", key, value);
         *tmp = ':';
         if (!strcmp(key, "Host")) {
             DPRINTF("get host!\n");

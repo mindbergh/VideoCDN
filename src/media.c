@@ -100,15 +100,15 @@ void modi_path(char* path, int thruput, conn_t* conn) {
 	fprintf(stderr, "old path:%s\n",path);
 
 	vod_index = strstr(path,"/vod/");
-	slash = vod_index ;
+	//slash = vod_index ;
 	seg_index = strstr(path,"Seg");
-	while( strstr(slash+1,"/") != NULL) {
-		slash = strstr(slash+1,"/");
-	}
+	//while( strstr(slash+1,"/") != NULL) {
+	//	slash = strstr(slash+1,"/");
+	//}
 	/* check if need to modify bitrate in uri */
 	if (seg_index != NULL) {
 		//fprintf(stderr, "old path:%s\n",path );
-		strncpy(buffer,path,slash-path + 1);
+		strncpy(buffer,path,vod_index-path + 5);
 		
 		sprintf(rate, "%d", thruput);
 		strcat(buffer,rate);

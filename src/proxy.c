@@ -519,7 +519,7 @@ void server2client(int serv_idx) {
     thru_idx = get_thru_by_addrs(client->addr, server->addr);
     thru = GET_THRU_BY_IDX(thru_idx);
     if(res.type == TYPE_F4F) {
-        fprintf(stderr, "chunk size:%ld\n", res.length);
+        //fprintf(stderr, "chunk size:%ld\n", res.length);
         update_thruput(res.length, conn, thru);
         //update_thruput_global(conn);
     }

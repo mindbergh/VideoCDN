@@ -30,7 +30,7 @@ void init_pool(int listen_sock, pool_t *p, char** argv) {
 
     pool.maxfd = listen_sock;
     pool.cur_conn = 0;
-    pool.log_file = fopen(argv[1],"a");
+    pool.log_file = fopen(argv[1],"w");
     if (pool.log_file == NULL) {
         DPRINTF("failed to open log file!\n");
         exit(-1);

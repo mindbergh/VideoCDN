@@ -268,7 +268,7 @@ void client2server(int clit_idx)
         DPRINTF("about to get conn\n");
 
         if ((conn_idx = client_get_conn(fd, sa.sin_addr.s_addr)) == -1) {
-            serv_fd = open_server_socket(pool.fake_ip,pool.www_ip,port);
+            serv_fd = open_server_socket(pool.fake_ip,pool.www_ip,8080);
             serv_idx = add_server(serv_fd, sa.sin_addr.s_addr);
             DPRINTF("new server:%d add!\n",serv_fd);
             conn_idx = add_conn(clit_idx, serv_idx);
@@ -758,12 +758,10 @@ void read_responeshdrs(int serv_fd, int clit_fd, response_t* res) {
         
 
         if (len == 0) {
-            fprintf(stderr, "read len = 0 s2c\n");
             return;
         }
 
         if (buf[len - 1] != '\n') {
-            fprintf(stderr, "last char !=\\n s2c\n");
             return;
         }
 
@@ -779,7 +777,6 @@ void read_responeshdrs(int serv_fd, int clit_fd, response_t* res) {
         tmp_cur_size += len;
 
         if (!strcmp(buf, "\r\n")) {
-            fprintf(stderr, "start from \\r\\n\n");
             break;
         }
         tmp = strchr(buf, ':');

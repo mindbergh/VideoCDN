@@ -783,7 +783,7 @@ void read_responeshdrs(int serv_fd, int clit_fd, response_t* res) {
         strcpy(key, buf);
         strcpy(value, tmp + 2);
         value[strlen(value) - 2] = '\0';
-        DPRINTF("key = %s, value = %s\n", key, value);
+        fprintf(stderr,"key = %s, value = %s\n", key, value);
         *tmp = ':';
         if (!strcmp(key, "Content-Type")) {
             assert(res->type == TYPE_MSC);

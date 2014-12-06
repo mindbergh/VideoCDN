@@ -240,7 +240,7 @@ void usage() {
 
 
 static void ns_log_init(char* log_file) {
-	flog = fopen(log_file, "a");
+	flog = fopen(log_file, "w");
 	return;
 }
 

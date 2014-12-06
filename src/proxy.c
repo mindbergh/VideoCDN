@@ -30,6 +30,7 @@
 /* global variable */
 pool_t pool; 
 bit_t* bitrates;
+char nolist_buf[MAXLINE];
 
 
 static const char *user_agent_hdr = "User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:10.0.3) Gecko/20120305 Firefox/10.0.3\r\n";
@@ -50,6 +51,7 @@ void serve_servers();
 void client2server(int);
 void server2client(int);
 bit_t* process_list(int serv_fd, int length); 
+void ask_for_nolist(int serv_fd);
 void usage();
 
 
@@ -206,7 +208,7 @@ void client2server(int clit_idx)
 {
     char buf[MAXLINE], method[MAXLINE], uri[MAXLINE], version[MAXLINE];
     char buf_internet[MAXLINE];
-    char host[MAXLINE], path[MAXLINE], path_list[MAXLINE];
+    char host[MAXLINE], path[MAXLINE], path_nolist[MAXLINE];
     int port;
     char port_str[6];
     int flag;
@@ -327,8 +329,8 @@ void client2server(int clit_idx)
     thru = GET_THRU_BY_IDX(thru_idx);
     if (endsWith(path, ".f4m") && !endsWith(path, "_nolist.f4m")) {
         flag = FLAG_LIST;
-        strcpy(path_list, path);
-        strcpy(path + strlen(path) - 4, "_nolist.f4m");
+        strcpy(path_nolist, path);
+        strcpy(path_nolist + strlen(path_nolist) - 4, "_nolist.f4m");
     } else if (isVideo(path)) {
         DPRINTF("This is video req: Idx:%d ;; Curr thru: %d\n",conn_idx, conn->avg_put);
         DPRINTF("Path=%s\n", path);
@@ -336,7 +338,7 @@ void client2server(int clit_idx)
         int chosen_rate = 0;
         int avg_thru = thru->avg_put / 1.5;
         int smallest = 100;
-        fprintf(stderr, "thru->avg_put: %d\n", thru->avg_put);
+        //fprintf(stderr, "thru->avg_put: %d\n", thru->avg_put);
         while (b) {
             if (b->bitrate > chosen_rate && b->bitrate <= avg_thru) {
                 chosen_rate = b->bitrate;
@@ -344,7 +346,7 @@ void client2server(int clit_idx)
             if (b->bitrate < smallest) {
                 smallest = b->bitrate;
             }
-            printf("avg_thru: %d;;bitrates: %d\n",avg_thru, b->bitrate);
+            //printf("avg_thru: %d;;bitrates: %d\n",avg_thru, b->bitrate);
             b = b->next;
         }
         if (chosen_rate <= 0) {
@@ -386,16 +388,7 @@ void client2server(int clit_idx)
     }
 
     if (flag == FLAG_LIST) {
-        printf("This is a f4m req, req for list\n");
-        sprintf(buf_internet, "GET %s HTTP/1.1\r\n", path_list);
-        io_sendn(serv_fd, buf_internet, strlen(buf_internet));
-        sprintf(buf_internet, "Host: %s\r\n", host);
-        io_sendn(serv_fd, buf_internet, strlen(buf_internet));
-        io_sendn(serv_fd, user_agent_hdr, strlen(user_agent_hdr));
-        io_sendn(serv_fd, accept_hdr, strlen(accept_hdr));
-        io_sendn(serv_fd, accept_encoding_hdr, strlen(accept_encoding_hdr));
-        io_sendn(serv_fd, connection_hdr, strlen(connection_hdr));
-        io_sendn(serv_fd, pxy_connection_hdr, strlen(pxy_connection_hdr));
+        sprintf(nolist_buf, "GET %s HTTP/1.1\r\nHost: %s\r\n", path_nolist, host);
     }
 }
 
@@ -418,7 +411,7 @@ void server2client(int serv_idx) {
     response_t res;
     bit_t* this_bitrates;
     
-    //fprintf(stderr, "server2client!!!\n");
+    fprintf(stderr, "server2client!!!\n");
 
     server = GET_SERV_BY_IDX(serv_idx);
     server_fd = server->fd;
@@ -465,6 +458,7 @@ void server2client(int serv_idx) {
             free(res.hdr_buf);
             res.hdr_buf = NULL;
             free(buf_internet);
+            ask_for_nolist(server_fd);
             return;
         }
         printf("This is a non-listed XML\n");
@@ -890,3 +884,15 @@ bit_t* process_list(int serv_fd, int length) {
     free(buf);
     return bitrates;
 }   
+
+
+
+
+void ask_for_nolist(int serv_fd) {
+    io_sendn(serv_fd, nolist_buf, strlen(nolist_buf));
+    io_sendn(serv_fd, user_agent_hdr, strlen(user_agent_hdr));
+    io_sendn(serv_fd, accept_hdr, strlen(accept_hdr));
+    io_sendn(serv_fd, accept_encoding_hdr, strlen(accept_encoding_hdr));
+    io_sendn(serv_fd, connection_hdr, strlen(connection_hdr));
+    io_sendn(serv_fd, pxy_connection_hdr, strlen(pxy_connection_hdr));
+}

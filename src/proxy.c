@@ -240,7 +240,7 @@ void client2server(int clit_idx)
 
     io_recvline_block(fd, buf, MAXLINE);
 
-    //printf("Request: %s\n", buf);
+    fprintf(stderr,"Request: %s\n", buf);
 
     if (strcmp(buf, "") == 0) {
         DPRINTF("Empty buffer\n");

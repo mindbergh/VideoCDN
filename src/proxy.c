@@ -152,11 +152,11 @@ int main(int argc, char **argv) {
             }*/
         }
         if(pool.nready>0) {
-            DPRINTF("About to serve client\n");
+            //DPRINTF("About to serve client\n");
             serve_clients();
         }
         if(pool.nready>0) {
-            DPRINTF("About to serve server\n");
+            //DPRINTF("About to serve server\n");
             serve_servers();
         }
     }

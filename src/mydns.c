@@ -21,7 +21,7 @@ int init_mydns(const char *dns_ip, unsigned int dns_port, const char *local_ip) 
   DPRINTF("Entering init_mydns\n");
   
   if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) == -1) {
-    DPRINTF("peer_run could not create socket");
+    DPRINTF("init_mydns could not create socket");
     exit(-1);
   }
   
@@ -36,7 +36,7 @@ int init_mydns(const char *dns_ip, unsigned int dns_port, const char *local_ip) 
 
 
   if (bind(sock, (struct sockaddr *) &myaddr, sizeof(myaddr)) == -1) {
-    DPRINTF("init_mydns could not bind socket");
+    DPRINTF("init_mydns could not bind socket, %s\n", strerror(errno));
     exit(-1);
   }
 

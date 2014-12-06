@@ -235,7 +235,7 @@ void client2server(int clit_idx)
 
     io_recvline_block(fd, buf, MAXLINE);
 
-    printf("Request: %s\n", buf);
+    //printf("Request: %s\n", buf);
 
     if (strcmp(buf, "") == 0) {
         DPRINTF("Empty buffer\n");
@@ -319,7 +319,7 @@ void client2server(int clit_idx)
 
     server = GET_SERV_BY_IDX(conn->serv_idx);
     serv_fd = server->fd;
-    fprintf(stderr, "Client fd = %d;;Serv fd = %d\n",client->fd, serv_fd);
+    //fprintf(stderr, "Client fd = %d;;Serv fd = %d\n",client->fd, serv_fd);
     if ((thru_idx = get_thru_by_addrs(client->addr, server->addr)) == -1) {
         //fprintf(stderr, "get_thru return 0, clit:%x;serv:%x\n", client->addr, server->addr);
         thru_idx = add_thru(client->addr, server->addr);
@@ -336,7 +336,7 @@ void client2server(int clit_idx)
         int chosen_rate = 0;
         int avg_thru = thru->avg_put / 1.5;
         int smallest = 100;
-        //fprintf(stderr, "thru->avg_put: %d\n", thru->avg_put);
+        fprintf(stderr, "thru->avg_put: %d\n", thru->avg_put);
         while (b) {
             if (b->bitrate > chosen_rate && b->bitrate <= avg_thru) {
                 chosen_rate = b->bitrate;
@@ -344,7 +344,7 @@ void client2server(int clit_idx)
             if (b->bitrate < smallest) {
                 smallest = b->bitrate;
             }
-            //printf("avg_thru: %d;;bitrates: %d\n",avg_thru, b->bitrate);
+            printf("avg_thru: %d;;bitrates: %d\n",avg_thru, b->bitrate);
             b = b->next;
         }
         if (chosen_rate <= 0) {
@@ -360,7 +360,7 @@ void client2server(int clit_idx)
     DPRINTF("uri = \"%s\"\n", uri);
     DPRINTF("host = \"%s\", ", host);
     DPRINTF("port = \"%d\", ", port);
-    DPRINTF("path = \"%s\"\n", path);
+    //printf("path = \"%s\"\n", path);
 
     
 
@@ -386,7 +386,7 @@ void client2server(int clit_idx)
     }
 
     if (flag == FLAG_LIST) {
-        DPRINTF("This is a f4m req, req for nolist\n");
+        printf("This is a f4m req, req for list\n");
         sprintf(buf_internet, "GET %s HTTP/1.1\r\n", path_list);
         io_sendn(serv_fd, buf_internet, strlen(buf_internet));
         sprintf(buf_internet, "Host: %s\r\n", host);
@@ -418,7 +418,7 @@ void server2client(int serv_idx) {
     response_t res;
     bit_t* this_bitrates;
     
-    fprintf(stderr, "server2client!!!\n");
+    //fprintf(stderr, "server2client!!!\n");
 
     server = GET_SERV_BY_IDX(serv_idx);
     server_fd = server->fd;
@@ -435,7 +435,7 @@ void server2client(int serv_idx) {
     client_fd = client->fd;
 
     read_responeshdrs(server_fd, client_fd, &res);
-    //fprintf(stderr, "server2client: RES TPYE: %d\n", res.type);
+    fprintf(stderr, "server2client: RES TPYE: %d\n", res.type);
     if (res.length == 0) {
         close_conn(conn_idx);
         return;
@@ -451,14 +451,14 @@ void server2client(int serv_idx) {
             return;
             //exit(EXIT_FAILURE);
         }
-        DPRINTF("Successfully recv XML from server:%d, n = %d\n", server_fd, n);
+        printf("Successfully recv XML from server:%d, n = %d\n", server_fd, n);
 
         buf_internet[res.length] = '\0';
 
         this_bitrates = parse_xml(buf_internet, res.length);
 
         if (this_bitrates != NULL) {
-            DPRINTF("This is a listed XML\n");
+            printf("This is a listed XML\n");
             bitrates = this_bitrates;
             //free(buf_internet);
             //buf_internet = realloc(buf_internet, MAXLINE);
@@ -467,7 +467,7 @@ void server2client(int serv_idx) {
             free(buf_internet);
             return;
         }
-        DPRINTF("This is a non-listed XML\n");
+        printf("This is a non-listed XML\n");
         
 
         gettimeofday(&(conn->end), NULL);  /* update conn end time */

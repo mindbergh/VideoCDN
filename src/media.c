@@ -100,7 +100,7 @@ void modi_path(char* path, int thruput, conn_t* conn) {
 
 	/* check if need to modify bitrate in uri */
 	if (seg_index != NULL) {
-		fprintf(stderr, "old path:%s\n",path );
+		//fprintf(stderr, "old path:%s\n",path );
 		strncpy(buffer,path,vod_index-path+5);
 		
 		sprintf(rate, "%d", thruput);
@@ -108,7 +108,7 @@ void modi_path(char* path, int thruput, conn_t* conn) {
 		strcat(buffer,seg_index);
 		memset(path,0,MAXLINE);
 		strcpy(path,buffer);
-		fprintf(stderr, "new path:%s\n",path );
+		//fprintf(stderr, "new path:%s\n",path );
 		strcpy(conn->cur_file,path);
 		conn->cur_file[strlen(path)] = '\0';
 	} 

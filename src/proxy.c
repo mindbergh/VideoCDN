@@ -272,7 +272,7 @@ void client2server(int clit_idx)
         DPRINTF("about to get conn\n");
 
         if ((conn_idx = client_get_conn(fd, sa.sin_addr.s_addr)) == -1) {
-            serv_fd = open_server_socket(pool.fake_ip,pool.www_ip,port);
+            serv_fd = open_server_socket(pool.fake_ip,pool.www_ip,8080);
             serv_idx = add_server(serv_fd, sa.sin_addr.s_addr);
             DPRINTF("new server:%d add!\n",serv_fd);
             conn_idx = add_conn(clit_idx, serv_idx);
@@ -753,7 +753,7 @@ void read_responeshdrs(int serv_fd, int clit_fd, response_t* res) {
     res->type = TYPE_MSC;
     res->length = 0;
 
-    printf("entering read res hdrs:%d\n", serv_fd);
+    DPRINTF("entering read res hdrs:%d\n", serv_fd);
 
     while (1) {
         io_recvline_block(serv_fd, buf, MAXLINE);

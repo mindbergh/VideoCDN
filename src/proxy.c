@@ -432,7 +432,7 @@ void server2client(int serv_idx) {
 
     read_responeshdrs(server_fd, client_fd, &res);
     fprintf(stderr, "server2client: RES TPYE: %d\n", res.type);
-    if (res.length == 0) {
+    if (res.length == 0 || res.type == 0) {
         close_conn(conn_idx);
         return;
     }

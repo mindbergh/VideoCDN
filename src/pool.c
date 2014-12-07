@@ -4,8 +4,7 @@
 
 extern pool_t pool;
 
-static const char *VIDEO_SERVER_ADDR = "video.cs.cmu.edu";
-static const char *VIDEO_SERVER_PORT = "8080";
+
 
 
 /** @brief Initial the pool of client fds to be select
@@ -25,7 +24,6 @@ void init_pool(int listen_sock, pool_t *p, char** argv) {
         pool.conn_l[i] = NULL;
         pool.client_l[i] = NULL;
         pool.server_l[i] = NULL;
-        pool.thru_l[i] == NULL;
     }
 
     pool.maxfd = listen_sock;
@@ -116,24 +114,13 @@ int open_server_socket(char *fake_ip, char *www_ip, int port) {
         return -1;
     }
 
-    if (www_ip == NULL) {
-        // server ip is not specified, ask DNS
-        rc = resolve(VIDEO_SERVER_ADDR, port, NULL, &result);
-        if (rc < 0) {
-            // handle error
-            DPRINTF("Resolve error!\n");
-            return -1;
-        }
-        // connect to address in result
-        rc = connect(serverfd, result->ai_addr, result->ai_addrlen);
-    } else {
-        // server ip is specified
-        memset(&serv_addr, '0', sizeof(serv_addr));
-        serv_addr.sin_family = AF_INET; 
-        inet_pton(AF_INET, www_ip, &(serv_addr.sin_addr));
-        serv_addr.sin_port = htons(port);
-        rc = connect(serverfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
-    }
+    // server ip is specified
+    memset(&serv_addr, '0', sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET; 
+    inet_pton(AF_INET, www_ip, &(serv_addr.sin_addr));
+    serv_addr.sin_port = htons(port);
+    rc = connect(serverfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+
     if (rc < 0) {
         // handle error
         DPRINTF("Connect error!\n");

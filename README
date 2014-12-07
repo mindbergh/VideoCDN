@@ -1,0 +1,82 @@
+##################################################################################
+# README                                                                         #
+#                                                                                #
+# Description: This file serves as a README and documentation for 15441 Project3 #
+#                                                                                #
+# Authors: Yao Zhou <yaozhou@cs.cmu.edu>,                                        #
+#          Ming Fang <mingf@cs.cmu.edu>                                          #
+#                                                                                #
+##################################################################################
+
+
+
+
+[TOC-1] Table of Contents
+--------------------------------------------------------------------------------
+
+        [TOC-1] Table of Contents
+        [DES-2] Description of Files
+        [DES-3] Description of Design for checkpoint1
+        [DES-4] Description of Design for checkpoint2
+
+
+
+[DES-2] Description of Files
+--------------------------------------------------------------------------------
+
+Here is a listing of all files associated with Recitation 1 and what their'
+purpose is:
+
+     .../README                             - Current document 
+     .../writeup.pdf                        - File contains the plots and analysis about alpha variation
+     .../test.txt                           - File contains test case
+     .../Makefile                           - Contains rules for make
+     .../src/libs/libxml2.so.2.7.3          - This fold contains the shared objects file for libxml2
+     .../src/libxml2/libxml/*               - This fold contains all .h file for libxml2
+     .../src/mlib/Makefile                  - Makefile to generate lib objects
+     .../src/mlib/README                    - A document for lib
+     .../src/mlib/mlist.[c|h]               - Contains a linked list structure
+     .../src/mlib/mqueue.[c|h]              - Contains a queue structure
+     .../src/mlib/mtest.c                   - A test for mlist and mqueue
+     .../src/mlib/mutil.h                   - Utilty routines for mlib
+     .../src/Makefile                       - Contains rules for make in this directory
+     .../src/conn.[c|h]                     - Connection between clients and servers
+     .../src/debug.h                        - A simple file used to debug. Set up debug flag here
+     .../src/dnstest.c                      - A simple test for dns
+     .../src/io.[c|h]                       - I/O functions 
+     .../src/log.[c|h]                      - Contains proxy loggin function
+     .../src/media.[c|h]                    - Contains operations and declaratons about video
+     .../src/mydns.[c|h]                    - My dns, contains implementation of dns resolve function
+     .../src/nameserver.[c|h]               - Contains actual DNS nameserver implementation  
+     .../src/ospf.[c|h]                     - Contains implementation of link state routing protocol
+     .../src/parse_xml.[c|h]                - Used to parse xml file with libxml2
+     .../src/pool.[c|h]                     - Contains some elements and functions for proxy
+     .../src/proxy.c                        - Implementation of proxy
+     .../src/timer.[c|h]                    - Implementation of time couting and recording
+     
+
+
+
+
+[DES-3] Description of Design for checkpoint1
+--------------------------------------------------------------------------------
+This project implements a content delievery system for video. By checkpoint 1, we have 
+implemented the following functionalities:
+1 Proxy is able to take client's request and parse it.
+2 Proxy is able to forward request from client to server.
+3 Proxy is able to take response from server and forward back to client
+4 Proxy can requset and get two specific files(*_nolist.f4m and *.f4m) and send *_nolist.f4m
+back to client. This file doesn't contain bitrate options.
+5 Proxy is able to compute current chosen bitrate based on current average throughput.
+6 Proxy is able to adjust requests to different bitrate according to current throughput.
+7 Proxy is able to support concurrency. It can support multiple clients
+8 Proxy is able to generate a lof file which contains information about time duration, bitrate etc.
+
+
+[DES-4] Description of Design for checkpoint2
+--------------------------------------------------------------------------------
+1 All functionalities achieved in checkpoint-1
+2 Proxy is able to resolve the address(domain name) which clients request
+3 Nameserver is able to take dns query and send back correct response ip address
+4 Nameserver is able to do load balancing. Two adopted algorithms are Round robin and OSPF.
+5 Nameserver is able to generate a log file which contains all dns reslove records.

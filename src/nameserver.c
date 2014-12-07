@@ -7,13 +7,12 @@
 
 static char ref_pkt[BUFSIZE];
 static int ref_pkt_len;
-static const char* ref_host = "video.cs.cmu.edu";
+static char* ref_host = "video.cs.cmu.edu";
 static FILE* flog;
 
 static int buf_len(char* buf);
 static void ns_log_init(char* log_file);
 static void ns_log(char* clit_ip, char* host_name, char* res_ip);
-static void hexDump (char *desc, void *addr, int len);
 
 int main(int argc, char* argv[]) {
 	
@@ -199,44 +198,8 @@ int gen_res(char* req_buf, char* res_buf, char* dest_addr) {
 }
 
 int parse(char* buf) {
-	/*
-	header_t* header = pkt->header;
-	char* data = pkt->data;
-	char buf[DATALEN*2] = {0};
-	// check headers
-	if(header->FLAG != 0) {
-		DPRINTF("wrong flag!\n");
-		return -1;
-	}
-	if(header->QDCOUNT != 1) {
-		DPRINTF("wrong flag!\n");
-		return -1;
-	}
-	if(header->ANCOUNT != 0) {
-		DPRINTF("wrong flag!\n");
-		return -1;
-	}
-	if(header->NSCOUNT != 0) {
-		DPRINTF("wrong flag!\n");
-		return -1;
-	}
-	if(header->ARCOUNT != 0) {
-		DPRINTF("wrong flag!\n");
-		return -1;
-	}
-
-	// check question
-	binary2hex(data,DATALEN,buf);
-	if(memcmp(buf,QUERY_HEX,strlen(QUERY_HEX)) != 0) {
-		DPRINTF("wrong query!\n");
-		return -1;
-	}*/
 	int offset = sizeof(uint16_t);
-	//fprintf(stderr, "ref_pkt_len = %d\n", ref_pkt_len);
-	//hexDump("Incoming", buf, ref_pkt_len);
-	//hexDump("REF", ref_pkt, ref_pkt_len);
-	//hexDump("test", "What the Fuck", 13);
-		
+
 	if (memcmp(buf+offset, ref_pkt+offset, ref_pkt_len-offset)) {
 		return -1;
 	}
@@ -248,9 +211,6 @@ void usage() {
     fprintf(stderr, "usage: ./nameserver [-r] <log> <ip> <port> <servers> <LSAs>\n");
     exit(0);
 }
-
-
-
 
 
 static void ns_log_init(char* log_file) {
@@ -267,49 +227,4 @@ static void ns_log(char* clit_ip, char* host_name, char* res_ip) {
 	fprintf(flog, "%s\n", res_ip);
 	fflush(flog);
 	return;
-}
-
-
-
-static void hexDump (char *desc, void *addr, int len) {
-    int i;
-    unsigned char buff[17];
-    unsigned char *pc = (unsigned char*)addr;
-
-    // Output description if given.
-    if (desc != NULL)
-        fprintf(stderr,"%s:\n", desc);
-
-    // Process every byte in the data.
-    for (i = 0; i < len; i++) {
-        // Multiple of 16 means new line (with line offset).
-
-        if ((i % 16) == 0) {
-            // Just don't print ASCII for the zeroth line.
-            if (i != 0)
-                fprintf(stderr,"  %s\n", buff);
-
-            // Output the offset.
-            fprintf(stderr,"  %04x ", i);
-        }
-
-        // Now the hex code for the specific character.
-        fprintf(stderr," %02x", pc[i]);
-
-        // And store a printable ASCII character for later.
-        if ((pc[i] < 0x20) || (pc[i] > 0x7e))
-            buff[i % 16] = '.';
-        else
-            buff[i % 16] = pc[i];
-        buff[(i % 16) + 1] = '\0';
-    }
-
-    // Pad out last line if not exactly 16 characters.
-    while ((i % 16) != 0) {
-        fprintf(stderr,"   ");
-        i++;
-    }
-
-    // And print the final ASCII bit.
-    fprintf(stderr,"  %s\n", buff);
 }

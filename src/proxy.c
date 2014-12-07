@@ -66,7 +66,6 @@ int main(int argc, char **argv) {
     
     int lis_port = 0; /* The port for the HTTP server to listen on */
     unsigned int dns_port = 0;
-    char *log_file = NULL; /* File to send log messages to (debug, info, error) */
     char *dns_ip = NULL;
 
     if (argc != 7 && argc != 8) {
@@ -78,7 +77,6 @@ int main(int argc, char **argv) {
     
     
      /* Parse arguments */
-    log_file = argv[1];
     pool.alpha = atof(argv[2]);
     lis_port = atoi(argv[3]);
     pool.fake_ip = argv[4];

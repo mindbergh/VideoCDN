@@ -47,14 +47,6 @@ int init_mydns(const char *dns_ip, unsigned int dns_port, const char *local_ip) 
   dns.servaddr.sin_port = htons(dns_port);
   inet_pton(AF_INET, dns_ip, &(dns.servaddr.sin_addr));
 
-
-
-	fprintf(stderr, "hdr:%u\n", sizeof(header_t));
-	fprintf(stderr, "q:%u\n", sizeof(question_t));
-	fprintf(stderr, "ans:%u\n", sizeof(answer_t));
-
-
-
   DPRINTF("Exiting init_mydns\n");
   return 0;
 }

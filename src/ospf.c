@@ -4,8 +4,10 @@
 
 #define BUFSIZE 100
 
+#ifdef DEBUG1
 static void print_topo(void* data, void* func_data);
 static void print_table(void* data, void* func_data);
+#endif
 static void shortest_path(void* data, void* func_data);
 static void unmark(void* data, void* func_data);
 static int parse_servs(char *servers);
@@ -55,7 +57,7 @@ char* route(char* clit_name, int rr_flag) {
 	return NULL;	
 }
 
-
+#ifdef DEBUG1
 static void print_table(void* data, void* func_data) {
 	rt_t* table = (rt_t*)(data);
 	fprintf(stderr, "%s  --->  %s\n", table->clit->name, table->serv->name);
@@ -73,7 +75,7 @@ static void print_topo(void* data, void* func_data) {
 	}
 	fprintf(stderr, "\n");
 }
-
+#endif
 
 // a func that is for foreach
 static void shortest_path(void* data, void* func_data) {
